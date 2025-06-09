@@ -36,7 +36,7 @@ sudo ln -s /etc/nginx/sites-available/chrony-network-stats /etc/nginx/sites-enab
 sudo nginx -t 
 sudo systemctl reload nginx
 ```
-4. Access to your website
+4. Access to your website : 
 Go to `http://127.0.0.1` or `http://localhost` in your web browser
 ## Serve Online with Nginx
 
