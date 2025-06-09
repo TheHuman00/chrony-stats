@@ -312,9 +312,9 @@ generate_html() {
             --secondary-text: #6c757d;
             --background-color: #f8f9fa;
             --content-background: #ffffff;
-            --border-color: #dee2e6;
-            --code-background: #282c34;
-            --code-text: #abb2bf;
+            --border-color: #787879;
+            --code-background: #e1e1e1;
+            --code-text: #000000;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -385,7 +385,7 @@ generate_html() {
             background-color: var(--code-background);
             color: var(--code-text);
             padding: 10px;
-            border: 1px solid #444;
+            border: 1px solid #c3bebe;
             border-radius: 4px;
             overflow-x: auto;
             white-space: pre-wrap;
