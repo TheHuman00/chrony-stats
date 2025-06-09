@@ -4,7 +4,7 @@ set -e
 #### Configuration ####
 INTERFACE="eth0"
 
-PAGE_TITLE="Network Traffic and NTP Statistics for ${INTERFACE}"
+PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
 OUTPUT_DIR="/var/www/chrony-network-stats"
 HTML_FILENAME="index.html"
 
