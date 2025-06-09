@@ -41,25 +41,25 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 
 1. **Download the script**:
    ```bash
-   wget https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/ntp-stat.sh -O /usr/local/bin/ntp-stat.sh
+   wget https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/ntp-stat.sh -O $HOME/ntp-stat.sh
    ```
 
 2. **Make the script executable**:
    ```bash
-   sudo chmod +x /usr/local/bin/ntp-stat.sh
+   sudo chmod +x $HOME/ntp-stat.sh
    ```
 
 3. **Test the script**:
    Run the script manually to ensure it works:
    ```bash
-   sudo /usr/local/bin/ntp-stat.sh
+   sudo $HOME/ntp-stat.sh
    ```
    Check the output in `/var/www/ntp-stat/index.html` and/or verify logs in `/var/log/ntp-stat.log`.
 
 ## Configuration
 
    ```bash
-   sudo nano /usr/local/bin/ntp-stat.sh
+   sudo nano $HOME/ntp-stat.sh
    ```
 
 The script includes a configuration section at the top of `ntp-stat.sh`. Modify these variables as needed:
@@ -92,18 +92,13 @@ The script includes a configuration section at the top of `ntp-stat.sh`. Modify 
 
 To run the script every 5 minutes with `sudo` privileges, configure the root crontab :
 
-1. **Edit the root crontab**:
+1. **Add in the root crontab**:
    ```bash
-   sudo crontab -e
+   ( sudo crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/ntp-stat.sh" ) | sudo crontab -
    ```
+   This adds the script to the root crontab and schedules it to run every 5 minutes.
 
-2. **Add the Following Line**:
-   ```bash
-   */5 * * * * /usr/local/bin/ntp-stat.sh
-   ```
-   This schedules the script to run every 5 minutes.
-
-3. **Verify Crontab**:
+2. **Verify Crontab**:
    Check the crontab entry:
    ```bash
    sudo crontab -l
@@ -113,7 +108,7 @@ To run the script every 5 minutes with `sudo` privileges, configure the root cro
 
 1. **Run the Script**:
    ```bash
-   sudo /usr/local/bin/ntp-stat.sh
+   sudo $HOME/ntp-stat.sh
    ```
 
 2. **View the Output**:
