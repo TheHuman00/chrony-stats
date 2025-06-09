@@ -251,7 +251,7 @@ generate_graphs() {
             'GPRINT:delay_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:delay_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:delay_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:disp_scaled#FFFF00:Root dispersion (ms, x1000)' \
+            'LINE1:disp_scaled#D8D800:Root dispersion (ms, x1000)' \
             'GPRINT:disp_scaled:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:disp_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:disp_scaled:AVERAGE:Avg\: %5.2lf%s' \
