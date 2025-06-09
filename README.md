@@ -27,13 +27,14 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    ```
 **Configure vnStat**:
    Ensure `vnstat` is monitoring the correct network interface (e.g., `eth0`):
-   ```bash
-   sudo vnstat -u -i YOUR-INTERFACE
-   ```
-   Replace `YOUR-INTERFACE` with your network interface. Find here :
+   Find your interface here :
    ```bash
    vnstat --iflist
    ```
+   Replace `YOUR-INTERFACE` with your network interface.
+   ```bash
+   sudo vnstat -u -i YOUR-INTERFACE
+   ``` 
    If not eth0 : ⚠️ Change your network interface in [Configuration](#configuration)
 
 
