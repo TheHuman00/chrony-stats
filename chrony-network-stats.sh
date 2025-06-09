@@ -5,11 +5,11 @@ set -e
 INTERFACE="eth0"
 
 PAGE_TITLE="Network Traffic and NTP Statistics for ${INTERFACE}"
-OUTPUT_DIR="/var/www/ntp-stat"
+OUTPUT_DIR="/var/www/chrony-network-stats.sh"
 HTML_FILENAME="index.html"
 
 ENABLE_LOGGING="yes"
-LOG_FILE="/var/log/ntp-stat.log"
+LOG_FILE="/var/log/chrony-network-stats.sh.log"
 RRD_DIR="/var/lib/chrony-rrd"
 RRD_FILE="$RRD_DIR/chrony.rrd"
 WIDTH=800
