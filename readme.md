@@ -46,7 +46,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 
 2. **Make the script executable**:
    ```bash
-   chmod +x /usr/local/bin/ntp-stat.sh
+   sudo chmod +x /usr/local/bin/ntp-stat.sh
    ```
 
 3. **Test the script**:
