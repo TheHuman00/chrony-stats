@@ -206,7 +206,7 @@ generate_graphs() {
             'GPRINT:auth_pkts:MIN:Min\: %5.2lf%s' \
             'GPRINT:auth_pkts:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:auth_pkts:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_tracking"]="--title 'Chrony Tracking Stats - by day' --vertical-label '(seconds,ppm)' \
+        ["chrony_tracking"]="--title 'Chrony Tracking Stats - by day' --vertical-label 'millisecondes,ppm' --alt-autoscale \
             --units-exponent 0 \
             DEF:stratum='$RRD_FILE':stratum:AVERAGE \
             DEF:offset='$RRD_FILE':offset:AVERAGE \
@@ -246,22 +246,22 @@ generate_graphs() {
             'GPRINT:skew_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:skew_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:skew_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:delay_scaled#00BFFF:Root delay (seconds, x1000) ' \
+            'LINE1:delay_scaled#00BFFF:Root delay (ms, x1000) ' \
             'GPRINT:delay_scaled:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:delay_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:delay_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:delay_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:disp_scaled#FFFF00:Root dispersion (sec, x1000)' \
+            'LINE1:disp_scaled#FFFF00:Root dispersion (ms, x1000)' \
             'GPRINT:disp_scaled:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:disp_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:disp_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:disp_scaled:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_offset"]="--title 'Chrony System Time Offset - by day' --vertical-label 'seconds' \
+        ["chrony_offset"]="--title 'Chrony System Time Offset - by day' --vertical-label 'millisecondes' \
             DEF:offset='$RRD_FILE':offset:AVERAGE \
             CDEF:offset_ms=offset,1000,* \
             LINE2:offset_ms#00ff00:'System time offset to NTP time' \
             GPRINT:offset_ms:LAST:'Cur\: %5.2lf%sms\n'"
-        ["chrony_delay"]="--title 'Chrony Network Delay - by day' --vertical-label 'seconds' \
+        ["chrony_delay"]="--title 'Chrony Network Delay - by day' --vertical-label 'millisecondes' --units-exponent 0 \
             DEF:delay='$RRD_FILE':delay:AVERAGE \
             CDEF:delay_ms=delay,1000,* \
             LINE2:delay_ms#00ff00:'Network path delay' \
@@ -270,7 +270,7 @@ generate_graphs() {
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
             LINE2:freq#00ff00:'Local clock frequency error' \
             GPRINT:freq:LAST:'Cur\: %5.2lf%sppm\n'"
-        ["chrony_drift"]="--title 'Chrony Drift - by day' --vertical-label 'Parts Per Million' \
+        ["chrony_drift"]="--title 'Chrony Drift - by day' --vertical-label 'ppm' \
             --units-exponent 0 \
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
             DEF:skew='$RRD_FILE':skew:AVERAGE \
@@ -325,10 +325,10 @@ generate_html() {
             line-height: 1.6;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background-color: var(--content-background);
-            padding: 20px 40px;
+            padding: 20px 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         }
@@ -358,6 +358,21 @@ generate_html() {
             font-size: 1.3em;
             color: var(--primary-text);
             margin-top: 25px;
+        }
+	@media (max-width: 767px) {
+            #vnstat-graphs table,
+            #vnstat-graphs tbody,
+            #vnstat-graphs tr,
+            #vnstat-graphs td {
+                display: block;
+                width: 100%;
+            }
+
+            #vnstat-graphs td {
+                padding-left: 0;
+                padding-right: 0;
+                text-align: center;
+            }
         }
         .graph-grid {
             display: grid;
@@ -430,27 +445,23 @@ generate_html() {
             </section>
 
             <section id="vnstat-graphs">
-                <h2>vnStati  Graphs</h2>
-                <div class="graph-grid">
-                    <figure>
-                        <img src="vnstat_s.png" alt="vnStat live traffic graph">
-                    </figure>
-                    <figure>
-                        <img src="vnstat_h.png" alt="vnStat hourly traffic graph">
-                     </figure>
-                    <figure>
-                        <img src="vnstat_d.png" alt="vnStat daily traffic graph">
-                     </figure>
-                    <figure>
-                        <img src="vnstat_m.png" alt="vnStat monthly traffic graph">
-                    </figure>
-                     <figure>
-                        <img src="vnstat_y.png" alt="vnStat yearly traffic graph">
-                    </figure>
-                    <figure>
-                        <img src="vnstat_t.png" alt="vnStat top 10 days traffic graph">
-                    </figure>
-                </div>
+                <h2>vnStati Graphs</h2>
+                <table border="0" style="margin-left: auto; margin-right: auto;">
+                    <tbody>
+                        <tr>
+                            <td valign="top" style="padding: 0 10px;">
+                                <img src="vnstat_s.png" alt="vnStat summary"><br>
+                                <img src="vnstat_d.png" alt="vnStat daily" style="margin-top: 4px;"><br>
+                                <img src="vnstat_t.png" alt="vnStat top 10" style="margin-top: 4px;"><br>
+                            </td>
+                            <td valign="top" style="padding: 0 10px;">
+                                <img src="vnstat_h.png" alt="vnStat hourly"><br>
+                                <img src="vnstat_m.png" alt="vnStat monthly" style="margin-top: 4px;"><br>
+                                <img src="vnstat_y.png" alt="vnStat yearly" style="margin-top: 4px;"><br>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </section>
 
             <section id="chrony-stats">
