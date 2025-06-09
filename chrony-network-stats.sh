@@ -91,7 +91,7 @@ collect_chrony_data() {
 
 extract_chronyc_values() {
     extract_val() {
-        echo "$RAW_TRACKING" | awk "/$1/ {print \$$2}" | grep -E '^[-+]?[0-9.]+$' || echo "U"
+        echo "$RAW_TRACKING" | awk "/$1/ {print \$($2)}" | grep -E '^[-+]?[0-9.]+$' || echo "U"
     }
 
     OFFSET=$(extract_val "Last offset" "NF-1")
