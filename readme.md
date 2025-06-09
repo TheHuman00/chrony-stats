@@ -1,4 +1,4 @@
-# Chrony and network monitoring script
+# Lightweight : Monitoring **Chrony** and **Network (vnStat)**
 
 Bash script designed to monitor network traffic and Chrony statistics, generating visual graphs and an HTML report for easy monitoring.
 It’s lightweight, requires minimal system resources, and is ideal for low-resource servers
