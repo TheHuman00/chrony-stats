@@ -54,7 +54,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    ```bash
    sudo $HOME/chrony-network-stats.sh
    ```
-   Check the output in `/var/www/chrony-network-stats.sh/index.html` and/or verify logs in `/var/log/chrony-network-stats.sh`.
+   Check the output in `/var/www/chrony-network-stats/index.html` and/or verify logs in `/var/log/chrony-network-stats.log`.
 
 ## Configuration
 
@@ -62,7 +62,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    sudo nano $HOME/chrony-network-stats.sh
    ```
 
-The script includes a configuration section at the top of `chrony-network-stats.sh.sh`. Modify these variables as needed:
+The script includes a configuration section at the top of `chrony-network-stats.sh`. Modify these variables as needed:
 
    ```bash
    [...]
@@ -72,12 +72,12 @@ The script includes a configuration section at the top of `chrony-network-stats.
    #    (e.g., ens33, enp0s3, wlan0, ...)
    INTERFACE="eth0"
 
-   PAGE_TITLE="Network Traffic and NTP Statistics for ${INTERFACE}"
-   OUTPUT_DIR="/var/www/chrony-network-stats.sh"
+   PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
+   OUTPUT_DIR="/var/www/chrony-network-stats"
    HTML_FILENAME="index.html"
 
    ENABLE_LOGGING="yes"
-   LOG_FILE="/var/log/chrony-network-stats.sh"
+   LOG_FILE="/var/log/chrony-network-stats.log"
    RRD_DIR="/var/lib/chrony-rrd"
    RRD_FILE="$RRD_DIR/chrony.rrd"
    WIDTH=800
@@ -112,13 +112,13 @@ To run the script every 5 minutes with `sudo` privileges, configure the root cro
    ```
 
 2. **View the Output**:
-   - The HTML report is generated at `/var/www/chrony-network-stats.sh/index.html`.
+   - The HTML report is generated at `/var/www/chrony-network-stats/index.html`.
    - Open this file in a web browser or serve it via a web server (e.g., Apache or Nginx).
 
    [See here how to serve via nginx in localhost](nginx.md)
 
 3. **Monitor Logs**:
-   Check `/var/log/chrony-network-stats.sh.log` for execution details and errors.
+   Check `/var/log/chrony-network-stats.log` for execution details and errors.
 
 ## License
 
