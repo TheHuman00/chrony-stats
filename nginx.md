@@ -13,16 +13,16 @@ You can use Nginx to serve the HTML report (index.html) either locally for quick
 ```
 2. Create and configure conf file of your site :
 ```bash
-   sudo touch /etc/nginx/sites-available/ntp-stat
+   sudo touch /etc/nginx/sites-available/chrony-network-stats
 ```
 ```bash
-   sudo nano /etc/nginx/sites-available/ntp-stat
+   sudo nano /etc/nginx/sites-available/chrony-network-stats
 ```
 ```bash
 server {
     listen 127.0.0.1:80;
 
-    root /var/www/ntp-stat;
+    root /var/www/chrony-network-stats;
     index index.html;
 
     location / {
@@ -32,7 +32,7 @@ server {
 ```
 3. Enable the site and reload nginx :
 ```bash
-sudo ln -s /etc/nginx/sites-available/ntp-stat /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/chrony-network-stats /etc/nginx/sites-enabled/chrony-network-stats
 sudo nginx -t 
 sudo systemctl reload nginx
 ```
@@ -48,14 +48,14 @@ sudo systemctl reload nginx
 
 1. Same like localy but : 
 ```bash
-   sudo nano /etc/nginx/sites-available/ntp-stat
+   sudo nano /etc/nginx/sites-available/chrony-network-stats
 ```
 ```bash
 server {
     listen 80;
     server_name HERE; # HERE PLACE YOUR PUBLIC IP OR DOMAIN NAME
 
-    root /var/www/ntp-stat;
+    root /var/www/chrony-network-stats;
     index index.html;
 
     location / {
