@@ -95,6 +95,7 @@ extract_chronyc_values() {
     }
 
     OFFSET=$(extract_val "Last offset" "NF-1")
+    SYSTIME=$(extract_val "System time" "NF-5")
     FREQ=$(extract_val "Frequency" "NF-2")
     RESID_FREQ=$(extract_val "Residual freq" "NF-1")
     SKEW=$(extract_val "Skew" "NF-1")
@@ -127,6 +128,7 @@ create_rrd_database() {
         LC_ALL=C rrdtool create "$RRD_FILE" --step 300 \
             DS:offset:GAUGE:600:U:U DS:frequency:GAUGE:600:U:U DS:resid_freq:GAUGE:600:U:U DS:skew:GAUGE:600:U:U \
             DS:delay:GAUGE:600:U:U DS:dispersion:GAUGE:600:U:U DS:stratum:GAUGE:600:0:16 \
+	    DS:systime:GAUGE:600:U:U \
             DS:pkts_recv:COUNTER:600:0:U DS:pkts_drop:COUNTER:600:0:U DS:cmd_recv:COUNTER:600:0:U \
             DS:cmd_drop:COUNTER:600:0:U DS:log_drop:COUNTER:600:0:U DS:nts_ke_acc:COUNTER:600:0:U \
             DS:nts_ke_drop:COUNTER:600:0:U DS:auth_pkts:COUNTER:600:0:U DS:interleaved:COUNTER:600:0:U \
@@ -142,7 +144,7 @@ create_rrd_database() {
 
 update_rrd_database() {
     log_message "INFO" "Updating RRD database..."
-    UPDATE_STRING="N:$OFFSET:$FREQ:$RESID_FREQ:$SKEW:$DELAY:$DISPERSION:$STRATUM:$PKTS_RECV:$PKTS_DROP:$CMD_RECV:$CMD_DROP:$LOG_DROP:$NTS_KE_ACC:$NTS_KE_DROP:$AUTH_PKTS:$INTERLEAVED:$TS_HELD"
+    UPDATE_STRING="N:$OFFSET:$FREQ:$RESID_FREQ:$SKEW:$DELAY:$DISPERSION:$STRATUM:$SYSTIME:$PKTS_RECV:$PKTS_DROP:$CMD_RECV:$CMD_DROP:$LOG_DROP:$NTS_KE_ACC:$NTS_KE_DROP:$AUTH_PKTS:$INTERLEAVED:$TS_HELD"
     LC_ALL=C rrdtool update "$RRD_FILE" "$UPDATE_STRING" || {
         log_message "ERROR" "Failed to update RRD database"
         exit 1
@@ -165,43 +167,43 @@ generate_graphs() {
             DEF:nts_ke_drop='$RRD_FILE':nts_ke_drop:AVERAGE \
             DEF:auth_pkts='$RRD_FILE':auth_pkts:AVERAGE \
             'COMMENT: \l' \
-            'AREA:pkts_recv#C4FFC4:Packets received          ' \
+            'AREA:pkts_recv#C4FFC4:Packets received            ' \
             'LINE1:pkts_recv#00E000:' \
             'GPRINT:pkts_recv:LAST:Cur\: %5.2lf%s' \
             'GPRINT:pkts_recv:MIN:Min\: %5.2lf%s' \
             'GPRINT:pkts_recv:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:pkts_recv:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:pkts_drop#FF8C00:Packets dropped          ' \
+            'LINE1:pkts_drop#FF8C00:Packets dropped             ' \
             'GPRINT:pkts_drop:LAST:Cur\: %5.2lf%s' \
             'GPRINT:pkts_drop:MIN:Min\: %5.2lf%s' \
             'GPRINT:pkts_drop:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:pkts_drop:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:cmd_recv#4169E1:Command packets received ' \
+            'LINE1:cmd_recv#4169E1:Command packets received    ' \
             'GPRINT:cmd_recv:LAST:Cur\: %5.2lf%s' \
             'GPRINT:cmd_recv:MIN:Min\: %5.2lf%s' \
             'GPRINT:cmd_recv:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:cmd_recv:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:cmd_drop#FFD700:Command packets dropped ' \
+            'LINE1:cmd_drop#FFD700:Command packets dropped     ' \
             'GPRINT:cmd_drop:LAST:Cur\: %5.2lf%s' \
             'GPRINT:cmd_drop:MIN:Min\: %5.2lf%s' \
             'GPRINT:cmd_drop:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:cmd_drop:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:log_drop#9400D3:Client log records dropped' \
+            'LINE1:log_drop#9400D3:Client log records dropped  ' \
             'GPRINT:log_drop:LAST:Cur\: %5.2lf%s' \
             'GPRINT:log_drop:MIN:Min\: %5.2lf%s' \
             'GPRINT:log_drop:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:log_drop:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:nts_ke_acc#8A2BE2:NTS-KE connections accepted' \
+            'LINE1:nts_ke_acc#8A2BE2:NTS-KE connections accepted ' \
             'GPRINT:nts_ke_acc:LAST:Cur\: %5.2lf%s' \
             'GPRINT:nts_ke_acc:MIN:Min\: %5.2lf%s' \
             'GPRINT:nts_ke_acc:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:nts_ke_acc:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:nts_ke_drop#9370DB:NTS-KE connections dropped' \
+            'LINE1:nts_ke_drop#9370DB:NTS-KE connections dropped  ' \
             'GPRINT:nts_ke_drop:LAST:Cur\: %5.2lf%s' \
             'GPRINT:nts_ke_drop:MIN:Min\: %5.2lf%s' \
             'GPRINT:nts_ke_drop:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:nts_ke_drop:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:auth_pkts#FF0000:Authenticated NTP packets' \
+            'LINE1:auth_pkts#FF0000:Authenticated NTP packets   ' \
             'GPRINT:auth_pkts:LAST:Cur\: %5.2lf%s' \
             'GPRINT:auth_pkts:MIN:Min\: %5.2lf%s' \
             'GPRINT:auth_pkts:AVERAGE:Avg\: %5.2lf%s' \
@@ -209,49 +211,39 @@ generate_graphs() {
         ["chrony_tracking"]="--title 'Chrony Tracking Stats - by day' --vertical-label 'millisecondes,ppm' --alt-autoscale \
             --units-exponent 0 \
             DEF:stratum='$RRD_FILE':stratum:AVERAGE \
-            DEF:offset='$RRD_FILE':offset:AVERAGE \
+            DEF:systime='$RRD_FILE':systime:AVERAGE \
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
             DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
             DEF:skew='$RRD_FILE':skew:AVERAGE \
             DEF:delay='$RRD_FILE':delay:AVERAGE \
             DEF:dispersion='$RRD_FILE':dispersion:AVERAGE \
-            CDEF:offset_scaled=offset,1000,* \
+            CDEF:systime_scaled=systime,1000,* \
             CDEF:resfreq_scaled=resid_freq,100,* \
             CDEF:skew_scaled=skew,100,* \
             CDEF:delay_scaled=delay,1000,* \
             CDEF:disp_scaled=dispersion,1000,* \
             'COMMENT: \l' \
-            'LINE1:stratum#00E000:Stratum                    ' \
+            'LINE1:stratum#00E000:Stratum                               ' \
             'GPRINT:stratum:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:stratum:MIN:Min\: %5.2lf%s' \
             'GPRINT:stratum:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:stratum:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:offset_scaled#0000FF:System Time (x1000)        ' \
-            'GPRINT:offset_scaled:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:offset_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:offset_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:offset_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:freq#FFC300:Frequency (ppm)            ' \
-            'GPRINT:freq:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:freq:MIN:Min\: %5.2lf%s' \
-            'GPRINT:freq:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:freq:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:resfreq_scaled#FF69B4:Residual Freq (ppm, x100)  ' \
+            'LINE1:systime_scaled#0000FF:System Clock Offset from NTP (ms)    ' \
+            'GPRINT:systime_scaled:LAST:  Cur\: %5.2lf%s' \
+            'GPRINT:systime_scaled:MIN:Min\: %5.2lf%s' \
+            'GPRINT:systime_scaled:AVERAGE:Avg\: %5.2lf%s' \
+            'GPRINT:systime_scaled:MAX:Max\: %5.2lf%s\l' \
+            'LINE1:resfreq_scaled#FF69B4:Residual Freq (ppm, x100)             ' \
             'GPRINT:resfreq_scaled:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:resfreq_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:resfreq_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:resfreq_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:skew_scaled#9400D3:Skew (ppm, x100)            ' \
+            'LINE1:skew_scaled#9400D3:Skew (ppm, x100)                      ' \
             'GPRINT:skew_scaled:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:skew_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:skew_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:skew_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:delay_scaled#00BFFF:Root delay (ms, x1000) ' \
-            'GPRINT:delay_scaled:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:delay_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:delay_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:delay_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:disp_scaled#D8D800:Root dispersion (ms, x1000)' \
+            'LINE1:disp_scaled#00BFFF:Root dispersion (ms)                  ' \
             'GPRINT:disp_scaled:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:disp_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:disp_scaled:AVERAGE:Avg\: %5.2lf%s' \
@@ -261,30 +253,25 @@ generate_graphs() {
             CDEF:offset_ms=offset,1000,* \
             LINE2:offset_ms#00ff00:'System time offset to NTP time' \
             GPRINT:offset_ms:LAST:'Cur\: %5.2lf%sms\n'"
-        ["chrony_delay"]="--title 'Chrony Network Delay - by day' --vertical-label 'millisecondes' --units-exponent 0 \
+        ["chrony_delay"]="--title 'Chrony Root Delay - by day' --vertical-label 'millisecondes' --units-exponent 0 \
             DEF:delay='$RRD_FILE':delay:AVERAGE \
             CDEF:delay_ms=delay,1000,* \
             LINE2:delay_ms#00ff00:'Network path delay' \
             GPRINT:delay_ms:LAST:'Cur\: %5.2lf%sms\n'"
-        ["chrony_frequency"]="--title 'Chrony Clock Frequency Error - by day' --vertical-label 'ppm' \
+        ["chrony_frequency"]="--title 'Chrony Clock Frequency Error - by day' --vertical-label 'ppm'\
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
-            LINE2:freq#00ff00:'Local clock frequency error' \
+            LINE2:freq#00ff00:'Local clock frequency error (Gain/Loss Rate)' \
             GPRINT:freq:LAST:'Cur\: %5.2lf%sppm\n'"
-        ["chrony_drift"]="--title 'Chrony Drift - by day' --vertical-label 'ppm' \
+	["chrony_drift"]="--title 'Chrony Drift - by day' --vertical-label 'ppm x100' \
             --units-exponent 0 \
-            DEF:freq='$RRD_FILE':frequency:AVERAGE \
-            DEF:skew='$RRD_FILE':skew:AVERAGE \
+            DEF:skew_raw='$RRD_FILE':skew:AVERAGE \
+            CDEF:skew_scaled=skew_raw,100,* \
             'COMMENT: \l' \
-            'LINE1:freq#32CD32:System Clock Gain/Loss Rate' \
-            'GPRINT:freq:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:freq:MIN:Min\: %5.2lf%s' \
-            'GPRINT:freq:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:freq:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:skew#4169E1:Estimate of Error Bound    ' \
-            'GPRINT:skew:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:skew:MIN:Min\: %5.2lf%s' \
-            'GPRINT:skew:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:skew:MAX:Max\: %5.2lf%s\l'"
+            'LINE1:skew_scaled#4169E1:Estimate of Error Bound (ppm, x100)' \
+            'GPRINT:skew_scaled:LAST:Cur\: %5.2lf' \
+            'GPRINT:skew_scaled:MIN:Min\: %5.2lf' \
+            'GPRINT:skew_scaled:AVERAGE:Avg\: %5.2lf' \
+            'GPRINT:skew_scaled:MAX:Max\: %5.2lf\l'"
     )
 
     for graph in "${!graphs[@]}"; do
