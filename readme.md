@@ -1,6 +1,6 @@
-# Lightweight : Monitoring **Chrony** and **Network (vnStat)**
+# Lightweight : Monitoring Chrony and Network
 
-Bash script designed to monitor network traffic and Chrony statistics, generating visual graphs and an HTML report for easy monitoring.
+Bash script designed to monitor **network traffic** and **Chrony** statistics, **generating visual graphs** and an **HTML** report for easy monitoring.
 It’s lightweight, requires minimal system resources, and is ideal for low-resource servers
 
 Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://thehuman00.github.io/demo-chrony-stats.github.io/)
@@ -8,7 +8,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 ## Features
 
 - **HTML report**: Creates a styled HTML page with embedded graphs and raw `chronyc` command outputs.
-- **Network  monitoring**
+- **Network  monitoring** : vnStat
 - **Chrony statistics**
 - **Lightweight**: Designed to be resource-efficient, with minimal overhead and no heavy dependencies.
 
