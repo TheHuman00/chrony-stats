@@ -34,7 +34,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    ```bash
    vnstat --iflist
    ```
-   ⚠️ Change your network interface (if not eth0) in [Configuration](#configuration) ⚠️
+   If not eth0 : ⚠️ Change your network interface in [Configuration](#configuration)
 
 
 ## Installation
