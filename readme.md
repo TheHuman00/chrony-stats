@@ -41,28 +41,28 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 
 1. **Download the script**:
    ```bash
-   wget https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/ntp-stat.sh -O $HOME/ntp-stat.sh
+   wget https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/chrony-network-stats.sh -O $HOME/chrony-network-stats.sh
    ```
 
 2. **Make the script executable**:
    ```bash
-   sudo chmod +x $HOME/ntp-stat.sh
+   sudo chmod +x $HOME/chrony-network-stats.sh
    ```
 
 3. **Test the script**:
    Run the script manually to ensure it works:
    ```bash
-   sudo $HOME/ntp-stat.sh
+   sudo $HOME/chrony-network-stats.sh
    ```
-   Check the output in `/var/www/ntp-stat/index.html` and/or verify logs in `/var/log/ntp-stat.log`.
+   Check the output in `/var/www/chrony-network-stats.sh/index.html` and/or verify logs in `/var/log/chrony-network-stats.sh`.
 
 ## Configuration
 
    ```bash
-   sudo nano $HOME/ntp-stat.sh
+   sudo nano $HOME/chrony-network-stats.sh
    ```
 
-The script includes a configuration section at the top of `ntp-stat.sh`. Modify these variables as needed:
+The script includes a configuration section at the top of `chrony-network-stats.sh.sh`. Modify these variables as needed:
 
    ```bash
    [...]
@@ -73,11 +73,11 @@ The script includes a configuration section at the top of `ntp-stat.sh`. Modify 
    INTERFACE="eth0"
 
    PAGE_TITLE="Network Traffic and NTP Statistics for ${INTERFACE}"
-   OUTPUT_DIR="/var/www/ntp-stat"
+   OUTPUT_DIR="/var/www/chrony-network-stats.sh"
    HTML_FILENAME="index.html"
 
    ENABLE_LOGGING="yes"
-   LOG_FILE="/var/log/ntp-stat.log"
+   LOG_FILE="/var/log/chrony-network-stats.sh"
    RRD_DIR="/var/lib/chrony-rrd"
    RRD_FILE="$RRD_DIR/chrony.rrd"
    WIDTH=800
@@ -94,7 +94,7 @@ To run the script every 5 minutes with `sudo` privileges, configure the root cro
 
 1. **Add in the root crontab**:
    ```bash
-   ( sudo crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/ntp-stat.sh" ) | sudo crontab -
+   ( sudo crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/chrony-network-stats.sh" ) | sudo crontab -
    ```
    This adds the script to the root crontab and schedules it to run every 5 minutes.
 
@@ -108,17 +108,17 @@ To run the script every 5 minutes with `sudo` privileges, configure the root cro
 
 1. **Run the Script**:
    ```bash
-   sudo $HOME/ntp-stat.sh
+   sudo $HOME/chrony-network-stats.sh
    ```
 
 2. **View the Output**:
-   - The HTML report is generated at `/var/www/ntp-stat/index.html`.
+   - The HTML report is generated at `/var/www/chrony-network-stats.sh/index.html`.
    - Open this file in a web browser or serve it via a web server (e.g., Apache or Nginx).
 
    [See here how to serve via nginx in localhost](nginx.md)
 
 3. **Monitor Logs**:
-   Check `/var/log/ntp-stat.log` for execution details and errors.
+   Check `/var/log/chrony-network-stats.sh.log` for execution details and errors.
 
 ## License
 
