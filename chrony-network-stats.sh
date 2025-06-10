@@ -95,7 +95,21 @@ extract_chronyc_values() {
     }
 
     OFFSET=$(extract_val "Last offset" "NF-1")
-    SYSTIME=$(extract_val "System time" "NF-5")
+
+    local systime_line
+    systime_line=$(echo "$RAW_TRACKING" | grep "System time")
+    if [[ -n "$systime_line" ]]; then
+        local value
+        value=$(echo "$systime_line" | awk '{print $4}')
+        if [[ "$systime_line" == *"slow"* ]]; then
+            SYSTIME="-$value"
+        else
+            SYSTIME="$value"
+        fi
+    else
+        SYSTIME="U"
+    fi
+
     FREQ=$(extract_val "Frequency" "NF-2")
     RESID_FREQ=$(extract_val "Residual freq" "NF-1")
     SKEW=$(extract_val "Skew" "NF-1")
@@ -208,66 +222,73 @@ generate_graphs() {
             'GPRINT:auth_pkts:MIN:Min\: %5.2lf%s' \
             'GPRINT:auth_pkts:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:auth_pkts:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_tracking"]="--title 'Chrony Tracking Stats - by day' --vertical-label 'millisecondes,ppm' --alt-autoscale \
+        ["chrony_tracking"]="--title 'Chrony Dispersion + Stratum - by day' --vertical-label 'milliseconds' --alt-autoscale \
             --units-exponent 0 \
             DEF:stratum='$RRD_FILE':stratum:AVERAGE \
-            DEF:systime='$RRD_FILE':systime:AVERAGE \
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
-            DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
             DEF:skew='$RRD_FILE':skew:AVERAGE \
             DEF:delay='$RRD_FILE':delay:AVERAGE \
             DEF:dispersion='$RRD_FILE':dispersion:AVERAGE \
-            CDEF:systime_scaled=systime,1000,* \
-            CDEF:resfreq_scaled=resid_freq,100,* \
             CDEF:skew_scaled=skew,100,* \
             CDEF:delay_scaled=delay,1000,* \
             CDEF:disp_scaled=dispersion,1000,* \
             'COMMENT: \l' \
-            'LINE1:stratum#00E000:Stratum                               ' \
+            'LINE1:stratum#00ff00:Stratum                                    ' \
             'GPRINT:stratum:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:stratum:MIN:Min\: %5.2lf%s' \
             'GPRINT:stratum:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:stratum:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:systime_scaled#0000FF:System Clock Offset from NTP (ms)    ' \
-            'GPRINT:systime_scaled:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:systime_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:systime_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:systime_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:resfreq_scaled#FF69B4:Residual Freq (ppm, x100)             ' \
-            'GPRINT:resfreq_scaled:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:resfreq_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:resfreq_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:resfreq_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:skew_scaled#9400D3:Skew (ppm, x100)                      ' \
-            'GPRINT:skew_scaled:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:skew_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:skew_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:skew_scaled:MAX:Max\: %5.2lf%s\l' \
-            'LINE1:disp_scaled#00BFFF:Root dispersion (ms)                  ' \
+            'LINE1:disp_scaled#9400D3:Root dispersion    [Root dispersion]       ' \
             'GPRINT:disp_scaled:LAST:  Cur\: %5.2lf%s' \
             'GPRINT:disp_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:disp_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:disp_scaled:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_offset"]="--title 'Chrony System Time Offset - by day' --vertical-label 'millisecondes' \
+        ["chrony_offset"]="--title 'Chrony System Time Offset - by day' --vertical-label 'milliseconds' \
             DEF:offset='$RRD_FILE':offset:AVERAGE \
-            CDEF:offset_ms=offset,1000,* \
-            LINE2:offset_ms#00ff00:'System time offset to NTP time' \
-            GPRINT:offset_ms:LAST:'Cur\: %5.2lf%sms\n'"
-        ["chrony_delay"]="--title 'Chrony Root Delay - by day' --vertical-label 'millisecondes' --units-exponent 0 \
+	    DEF:systime='$RRD_FILE':systime:AVERAGE \
+	    CDEF:systime_scaled=systime,1000,* \
+	    CDEF:offset_ms=offset,1000,* \
+            'LINE2:offset_ms#00ff00:Actual Offset from NTP Source [Last Offset] ' \
+            'GPRINT:offset_ms:LAST:  Cur\: %5.2lf%s' \
+	    'GPRINT:offset_ms:MIN:Min\: %5.2lf%s' \
+            'GPRINT:offset_ms:AVERAGE:Avg\: %5.2lf%s' \
+            'GPRINT:offset_ms:MAX:Max\: %5.2lf%s\l' \
+            'LINE1:systime_scaled#4169E1:System Clock Adjustment       [System Time] ' \
+            'GPRINT:systime_scaled:LAST:  Cur\: %5.2lf%s' \
+            'GPRINT:systime_scaled:MIN:Min\: %5.2lf%s' \
+            'GPRINT:systime_scaled:AVERAGE:Avg\: %5.2lf%s' \
+            'GPRINT:systime_scaled:MAX:Max\: %5.2lf%s\l'"
+        ["chrony_delay"]="--title 'Chrony Root Delay - by day' --vertical-label 'milliseconds' --units-exponent 0 \
             DEF:delay='$RRD_FILE':delay:AVERAGE \
             CDEF:delay_ms=delay,1000,* \
-            LINE2:delay_ms#00ff00:'Root delay' \
-            GPRINT:delay_ms:LAST:'Cur\: %5.2lf%sms\n'"
+            LINE2:delay_ms#00ff00:'Network Delay to Root Source   [Root Delay]  ' \
+            'GPRINT:delay_ms:LAST:Cur\: %5.2lf%s' \
+            'GPRINT:delay_ms:MIN:Min\: %5.2lf%s' \
+            'GPRINT:delay_ms:AVERAGE:Avg\: %5.2lf%s' \
+            'GPRINT:delay_ms:MAX:Max\: %5.2lf%s\l'"
         ["chrony_frequency"]="--title 'Chrony Clock Frequency Error - by day' --vertical-label 'ppm'\
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
-            LINE2:freq#00ff00:'Local clock frequency error (Gain/Loss Rate)' \
-            GPRINT:freq:LAST:'Cur\: %5.2lf%sppm\n'"
-	["chrony_drift"]="--title 'Chrony Drift - by day' --vertical-label 'ppm x100' \
+            DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
+            CDEF:resfreq_scaled=resid_freq,100,* \
+            CDEF:freq_scaled=freq,1,* \
+            'LINE2:freq_scaled#00ff00:Natural Clock Drift      [Frequency]         ' \
+            'GPRINT:freq_scaled:LAST:Cur\: %5.2lf%s' \
+            'GPRINT:freq_scaled:MIN:Min\: %5.2lf%s' \
+            'GPRINT:freq_scaled:AVERAGE:Avg\: %5.2lf%s' \
+            'GPRINT:freq_scaled:MAX:Max\: %5.2lf%s\n' \
+            'LINE1:resfreq_scaled#4169E1:Residual Drift (x100)    [Residual freq]     ' \
+            'GPRINT:resfreq_scaled:LAST:Cur\: %5.2lf%s' \
+            'GPRINT:resfreq_scaled:MIN:Min\: %5.2lf%s' \
+            'GPRINT:resfreq_scaled:AVERAGE:Avg\: %5.2lf%s' \
+            'GPRINT:resfreq_scaled:MAX:Max\: %5.2lf%s\l'"
+	["chrony_drift"]="--title 'Chrony Drift Margin Error - by day' --vertical-label 'ppm' \
             --units-exponent 0 \
+            DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
             DEF:skew_raw='$RRD_FILE':skew:AVERAGE \
-            CDEF:skew_scaled=skew_raw,100,* \
+            CDEF:resfreq_scaled=resid_freq,100,* \
+	    CDEF:skew_scaled=skew_raw,100,* \
             'COMMENT: \l' \
-            'LINE1:skew_scaled#4169E1:Estimate of Error Bound (ppm, x100)' \
+            'LINE1:skew_scaled#00ff00:Estimate Drift Error Margin (x100)  [Skew]   ' \
             'GPRINT:skew_scaled:LAST:Cur\: %5.2lf' \
             'GPRINT:skew_scaled:MIN:Min\: %5.2lf' \
             'GPRINT:skew_scaled:AVERAGE:Avg\: %5.2lf' \
@@ -341,6 +362,12 @@ generate_html() {
             margin-top: 0;
             margin-bottom: 20px;
         }
+        h2 a {
+            font-size: 0.8em;
+            font-weight: normal;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
         h3 {
             font-size: 1.3em;
             color: var(--primary-text);
@@ -408,7 +435,7 @@ generate_html() {
     <div class="container">
 	<main>
             <section id="chrony-graphs">
-                <h2>Chrony Graphs</h2>
+                <h2>Chrony Graphs <a target="_blank" href="https://chrony-project.org/doc/4.3/chronyc.html#:~:text=System%20clock-,tracking,-The%20tracking%20command">[Data Legend]</a></h2>
                 <div class="graph-grid">
                     <figure>
                         <img src="chrony_serverstats.png" alt="Chrony server statistics graph">
