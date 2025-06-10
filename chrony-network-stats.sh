@@ -63,7 +63,7 @@ generate_vnstat_images() {
     log_message "INFO" "Generating vnStat images for interface '$INTERFACE'..."
     local modes=("s" "d" "t" "h" "m" "y")
     for mode in "${modes[@]}"; do
-        vnstati -"$mode" -i "$INTERFACE" -o "$OUTPUT_DIR/vnstat_${mode}.png" || {
+        vnstati -"$mode" -i "$INTERFACE" -o "$OUTPUT_DIR/img/vnstat_${mode}.png" || {
             log_message "ERROR" "Failed to generate vnstat image for mode $mode"
             exit 1
         }
@@ -438,22 +438,22 @@ generate_html() {
                 <h2>Chrony Graphs <a target="_blank" href="https://chrony-project.org/doc/4.3/chronyc.html#:~:text=System%20clock-,tracking,-The%20tracking%20command">[Data Legend]</a></h2>
                 <div class="graph-grid">
                     <figure>
-                        <img src="chrony_serverstats.png" alt="Chrony server statistics graph">
+                        <img src="img/chrony_serverstats.png" alt="Chrony server statistics graph">
                     </figure>
                     <figure>
-                        <img src="chrony_offset.png" alt="Chrony system clock offset graph">
+                        <img src="img/chrony_offset.png" alt="Chrony system clock offset graph">
                     </figure>
                     <figure>
-                        <img src="chrony_tracking.png" alt="Chrony system clock tracking graph">
+                        <img src="img/chrony_tracking.png" alt="Chrony system clock tracking graph">
                     </figure>
                     <figure>
-                        <img src="chrony_delay.png" alt="Chrony sync delay graph">
+                        <img src="img/chrony_delay.png" alt="Chrony sync delay graph">
                     </figure>
                     <figure>
-                        <img src="chrony_frequency.png" alt="Chrony clock frequency graph">
+                        <img src="img/chrony_frequency.png" alt="Chrony clock frequency graph">
                     </figure>
                     <figure>
-                        <img src="chrony_drift.png" alt="Chrony clock frequency drift graph">
+                        <img src="img/chrony_drift.png" alt="Chrony clock frequency drift graph">
                     </figure>
                 </div>
             </section>
@@ -464,14 +464,14 @@ generate_html() {
                     <tbody>
                         <tr>
                             <td valign="top" style="padding: 0 10px;">
-                                <img src="vnstat_s.png" alt="vnStat summary"><br>
-                                <img src="vnstat_d.png" alt="vnStat daily" style="margin-top: 4px;"><br>
-                                <img src="vnstat_t.png" alt="vnStat top 10" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_s.png" alt="vnStat summary"><br>
+                                <img src="img/vnstat_d.png" alt="vnStat daily" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_t.png" alt="vnStat top 10" style="margin-top: 4px;"><br>
                             </td>
                             <td valign="top" style="padding: 0 10px;">
-                                <img src="vnstat_h.png" alt="vnStat hourly"><br>
-                                <img src="vnstat_m.png" alt="vnStat monthly" style="margin-top: 4px;"><br>
-                                <img src="vnstat_y.png" alt="vnStat yearly" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_h.png" alt="vnStat hourly"><br>
+                                <img src="img/vnstat_m.png" alt="vnStat monthly" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_y.png" alt="vnStat yearly" style="margin-top: 4px;"><br>
                             </td>
                         </tr>
                     </tbody>
