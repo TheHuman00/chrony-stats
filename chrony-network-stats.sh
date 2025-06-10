@@ -256,7 +256,7 @@ generate_graphs() {
         ["chrony_delay"]="--title 'Chrony Root Delay - by day' --vertical-label 'millisecondes' --units-exponent 0 \
             DEF:delay='$RRD_FILE':delay:AVERAGE \
             CDEF:delay_ms=delay,1000,* \
-            LINE2:delay_ms#00ff00:'Network path delay' \
+            LINE2:delay_ms#00ff00:'Root delay' \
             GPRINT:delay_ms:LAST:'Cur\: %5.2lf%sms\n'"
         ["chrony_frequency"]="--title 'Chrony Clock Frequency Error - by day' --vertical-label 'ppm'\
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
