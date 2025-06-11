@@ -296,7 +296,7 @@ generate_graphs() {
     )
 
     for graph in "${!graphs[@]}"; do
-        local cmd="LC_ALL=C rrdtool graph '$OUTPUT_DIR/$graph.png' --width '$WIDTH' --height '$HEIGHT' --start end-1d --end now-180s ${graphs[$graph]}"
+        local cmd="LC_ALL=C rrdtool graph '$OUTPUT_DIR/img/$graph.png' --width '$WIDTH' --height '$HEIGHT' --start end-1d --end now-180s ${graphs[$graph]}"
         eval "$cmd" || {
             log_message "ERROR" "Failed to generate graph: $graph"
             exit 1
