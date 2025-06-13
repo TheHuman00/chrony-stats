@@ -33,7 +33,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    ```
    Replace `YOUR-INTERFACE` with your network interface.
    ```bash
-   sudo vnstat -u -i YOUR-INTERFACE
+   sudo vnstat -i YOUR-INTERFACE
    ``` 
    If not eth0 : ⚠️ Change your network interface in [Configuration](#configuration)
 
