@@ -5,7 +5,7 @@ set -e
 INTERFACE="eth0"
 
 PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
-OUTPUT_DIR="/var/www/chrony-network-stats"
+OUTPUT_DIR="/var/www/html/chrony-network-stats"
 HTML_FILENAME="index.html"
 
 ENABLE_LOGGING="yes"
