@@ -47,7 +47,7 @@ check_commands() {
 
 setup_directories() {
     log_message "INFO" "Checking and preparing directories..."
-    for dir in "$OUTPUT_DIR" "$RRD_DIR"; do
+    for dir in "$OUTPUT_DIR" "$RRD_DIR" "$OUTPUT_DIR/img"; do
         mkdir -p "$dir" || {
             log_message "ERROR" "Failed to create directory: $dir"
             exit 1
