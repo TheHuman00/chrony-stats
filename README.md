@@ -12,18 +12,12 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 - **Chrony statistics**
 - **Lightweight**: Designed to be resource-efficient, with minimal overhead and no heavy dependencies.
 
-## Requirements
-
-- **Dependencies**:
-  - `vnstat` + `vnstati` : For network traffic monitoring + graph generation.
-  - `chrony` : For NTP statistics collection.
-  - `rrdtool` : For creating and managing the Round-Robin Database.
-  - `timeout` (part of `coreutils`) : For setting timeouts on `chronyc` commands.
+## Prerequisites
 
 **Install dependencies** (on Debian/Ubuntu-based systems):
    ```bash
    sudo apt update
-   sudo apt install vnstat vnstati rrdtool chrony coreutils
+   sudo apt install vnstat vnstati rrdtool chrony
    ```
 **Configure vnStat**:
    Ensure `vnstat` is monitoring the correct network interface (e.g., `eth0`):
@@ -50,15 +44,6 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    sudo chmod +x $HOME/chrony-network-stats.sh
    ```
 
-3. **Test the script**:
-   Run the script manually to ensure it works:
-   ```bash
-   sudo $HOME/chrony-network-stats.sh
-   ```
-   Check the output in `/var/www/chrony-network-stats/index.html` and/or verify logs in `/var/log/chrony-network-stats.log`.
-   
-   🗒️ It may take up to 5 minutes for the first values to appear on the graphs 🗒️
-
 ## Configuration
 
    ```bash
@@ -76,7 +61,7 @@ The script includes a configuration section at the top of `chrony-network-stats.
    INTERFACE="eth0"
 
    PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
-   OUTPUT_DIR="/var/www/chrony-network-stats"
+   OUTPUT_DIR="/var/www/html/chrony-network-stats"
    HTML_FILENAME="index.html"
 
    ENABLE_LOGGING="yes"
@@ -89,7 +74,24 @@ The script includes a configuration section at the top of `chrony-network-stats.
    #########################
    [...]
    ```
+   Close with Ctrl+X --> Y --> Enter
 
+
+## Usage
+
+1. **Run the Script**:
+   ```bash
+   sudo $HOME/chrony-network-stats.sh
+   ```
+
+2. **View the Output**:
+   - The HTML report is generated at `/var/www/chrony-network-stats/index.html`.
+   - Serve this file via a web server (e.g., Apache or Nginx).
+
+   [See here how to serve via nginx in localhost](nginx.md)
+
+3. **Monitor Logs**:
+   Check `/var/log/chrony-network-stats.log` for execution details and errors.
 
 ## Setting up a crontab (Run every 5 minutes)
 
@@ -107,21 +109,6 @@ To run the script every 5 minutes with `sudo` privileges, configure the root cro
    sudo crontab -l
    ```
 
-## Usage
-
-1. **Run the Script**:
-   ```bash
-   sudo $HOME/chrony-network-stats.sh
-   ```
-
-2. **View the Output**:
-   - The HTML report is generated at `/var/www/chrony-network-stats/index.html`.
-   - Open this file in a web browser or serve it via a web server (e.g., Apache or Nginx).
-
-   [See here how to serve via nginx in localhost](nginx.md)
-
-3. **Monitor Logs**:
-   Check `/var/log/chrony-network-stats.log` for execution details and errors.
 
 ## License
 
