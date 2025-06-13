@@ -35,7 +35,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    ```bash
    sudo vnstat -i YOUR-INTERFACE
    ``` 
-   If not eth0 : ⚠️ Change your network interface in [Configuration](#configuration)
+   **If not eth0** : ⚠️ Change your network interface in [Configuration](#configuration) section !!
 
 
 ## Installation
