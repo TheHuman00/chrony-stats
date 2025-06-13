@@ -56,6 +56,8 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    sudo $HOME/chrony-network-stats.sh
    ```
    Check the output in `/var/www/chrony-network-stats/index.html` and/or verify logs in `/var/log/chrony-network-stats.log`.
+   
+   🗒️ It may take up to 5 minutes for the first values to appear on the graphs 🗒️
 
 ## Configuration
 
