@@ -64,7 +64,7 @@ generate_vnstat_images() {
     local modes=("s" "d" "t" "h" "m" "y")
     for mode in "${modes[@]}"; do
         vnstati -"$mode" -i "$INTERFACE" -o "$OUTPUT_DIR/img/vnstat_${mode}.png" || {
-            log_message "ERROR" "Failed to generate vnstat image for mode $mode Cehck configuaration section : INTERFACE=\"here\""
+            log_message "ERROR" "Failed to generate vnstat image for mode $mode Check configuaration section : INTERFACE=\"here\""
             exit 1
         }
     done
