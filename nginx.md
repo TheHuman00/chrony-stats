@@ -22,7 +22,7 @@ You can use Nginx to serve the HTML report (index.html) either locally for quick
 server {
     listen 127.0.0.1:80;
 
-    root /var/www/chrony-network-stats;
+    root /var/www/html/chrony-network-stats;
     index index.html;
 
     location / {
