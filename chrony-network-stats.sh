@@ -15,6 +15,11 @@ RRD_FILE="$RRD_DIR/chrony.rrd"
 WIDTH=800
 HEIGHT=300
 TIMEOUT_SECONDS=5
+
+## When chrony restarts, it can generate abnormally high statistical values (e.g., 12M packets)
+## that distort the graph scale. This parameter filters out values above the threshold,
+## creating gaps in the graph instead of displaying misleading spikes.
+SERVER_STATS_UPPER_LIMIT=100000
 #######################
 
 log_message() {
@@ -168,18 +173,38 @@ update_rrd_database() {
 generate_graphs() {
     log_message "INFO" "Generating graphs..."
     local END_TIME=$(date +%s)
-    local START_TIME=$((END_TIME - 86400))
+    
+    declare -A time_periods=(
+        ["day"]="end-1d"
+        ["week"]="end-1w" 
+        ["month"]="end-1m"
+    )
+    
+    declare -A period_titles=(
+        ["day"]="by day"
+        ["week"]="by week"
+        ["month"]="by month"
+    )
+    
     declare -A graphs=(
-        ["chrony_serverstats"]="--title 'Chrony Server Statistics - by day' --vertical-label 'Packets/second' \
-            --lower-limit 0 --units-exponent 0 \
-            DEF:pkts_recv='$RRD_FILE':pkts_recv:AVERAGE \
-            DEF:pkts_drop='$RRD_FILE':pkts_drop:AVERAGE \
-            DEF:cmd_recv='$RRD_FILE':cmd_recv:AVERAGE \
-            DEF:cmd_drop='$RRD_FILE':cmd_drop:AVERAGE \
-            DEF:log_drop='$RRD_FILE':log_drop:AVERAGE \
-            DEF:nts_ke_acc='$RRD_FILE':nts_ke_acc:AVERAGE \
-            DEF:nts_ke_drop='$RRD_FILE':nts_ke_drop:AVERAGE \
-            DEF:auth_pkts='$RRD_FILE':auth_pkts:AVERAGE \
+        ["chrony_serverstats"]="--title 'Chrony Server Statistics - PERIOD_TITLE' --vertical-label 'Packets/second' \
+            --lower-limit 0 --rigid --units-exponent 0 \
+            DEF:pkts_recv_raw='$RRD_FILE':pkts_recv:AVERAGE \
+            DEF:pkts_drop_raw='$RRD_FILE':pkts_drop:AVERAGE \
+            DEF:cmd_recv_raw='$RRD_FILE':cmd_recv:AVERAGE \
+            DEF:cmd_drop_raw='$RRD_FILE':cmd_drop:AVERAGE \
+            DEF:log_drop_raw='$RRD_FILE':log_drop:AVERAGE \
+            DEF:nts_ke_acc_raw='$RRD_FILE':nts_ke_acc:AVERAGE \
+            DEF:nts_ke_drop_raw='$RRD_FILE':nts_ke_drop:AVERAGE \
+            DEF:auth_pkts_raw='$RRD_FILE':auth_pkts:AVERAGE \
+            CDEF:pkts_recv=pkts_recv_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,pkts_recv_raw,IF \
+            CDEF:pkts_drop=pkts_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,pkts_drop_raw,IF \
+            CDEF:cmd_recv=cmd_recv_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,cmd_recv_raw,IF \
+            CDEF:cmd_drop=cmd_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,cmd_drop_raw,IF \
+            CDEF:log_drop=log_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,log_drop_raw,IF \
+            CDEF:nts_ke_acc=nts_ke_acc_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,nts_ke_acc_raw,IF \
+            CDEF:nts_ke_drop=nts_ke_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,nts_ke_drop_raw,IF \
+            CDEF:auth_pkts=auth_pkts_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,auth_pkts_raw,IF \
             'COMMENT: \l' \
             'AREA:pkts_recv#C4FFC4:Packets received            ' \
             'LINE1:pkts_recv#00E000:' \
@@ -222,7 +247,7 @@ generate_graphs() {
             'GPRINT:auth_pkts:MIN:Min\: %5.2lf%s' \
             'GPRINT:auth_pkts:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:auth_pkts:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_tracking"]="--title 'Chrony Dispersion + Stratum - by day' --vertical-label 'milliseconds' --alt-autoscale \
+        ["chrony_tracking"]="--title 'Chrony Dispersion + Stratum - PERIOD_TITLE' --vertical-label 'milliseconds' --alt-autoscale \
             --units-exponent 0 \
             DEF:stratum='$RRD_FILE':stratum:AVERAGE \
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
@@ -243,7 +268,7 @@ generate_graphs() {
             'GPRINT:disp_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:disp_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:disp_scaled:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_offset"]="--title 'Chrony System Time Offset - by day' --vertical-label 'milliseconds' \
+        ["chrony_offset"]="--title 'Chrony System Time Offset - PERIOD_TITLE' --vertical-label 'milliseconds' \
             DEF:offset='$RRD_FILE':offset:AVERAGE \
 	    DEF:systime='$RRD_FILE':systime:AVERAGE \
 	    CDEF:systime_scaled=systime,1000,* \
@@ -258,7 +283,7 @@ generate_graphs() {
             'GPRINT:systime_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:systime_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:systime_scaled:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_delay"]="--title 'Chrony Root Delay - by day' --vertical-label 'milliseconds' --units-exponent 0 \
+        ["chrony_delay"]="--title 'Chrony Root Delay - PERIOD_TITLE' --vertical-label 'milliseconds' --units-exponent 0 \
             DEF:delay='$RRD_FILE':delay:AVERAGE \
             CDEF:delay_ms=delay,1000,* \
             LINE2:delay_ms#00ff00:'Network Delay to Root Source   [Root Delay]  ' \
@@ -266,7 +291,7 @@ generate_graphs() {
             'GPRINT:delay_ms:MIN:Min\: %5.2lf%s' \
             'GPRINT:delay_ms:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:delay_ms:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_frequency"]="--title 'Chrony Clock Frequency Error - by day' --vertical-label 'ppm'\
+        ["chrony_frequency"]="--title 'Chrony Clock Frequency Error - PERIOD_TITLE' --vertical-label 'ppm'\
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
             DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
             CDEF:resfreq_scaled=resid_freq,100,* \
@@ -281,7 +306,7 @@ generate_graphs() {
             'GPRINT:resfreq_scaled:MIN:Min\: %5.2lf%s' \
             'GPRINT:resfreq_scaled:AVERAGE:Avg\: %5.2lf%s' \
             'GPRINT:resfreq_scaled:MAX:Max\: %5.2lf%s\l'"
-	["chrony_drift"]="--title 'Chrony Drift Margin Error - by day' --vertical-label 'ppm' \
+	["chrony_drift"]="--title 'Chrony Drift Margin Error - PERIOD_TITLE' --vertical-label 'ppm' \
             --units-exponent 0 \
             DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
             DEF:skew_raw='$RRD_FILE':skew:AVERAGE \
@@ -295,12 +320,18 @@ generate_graphs() {
             'GPRINT:skew_scaled:MAX:Max\: %5.2lf\l'"
     )
 
-    for graph in "${!graphs[@]}"; do
-        local cmd="LC_ALL=C rrdtool graph '$OUTPUT_DIR/img/$graph.png' --width '$WIDTH' --height '$HEIGHT' --start end-1d --end now-180s ${graphs[$graph]}"
-        eval "$cmd" || {
-            log_message "ERROR" "Failed to generate graph: $graph"
-            exit 1
-        }
+    for period in "${!time_periods[@]}"; do
+        for graph in "${!graphs[@]}"; do
+            local graph_title="${graphs[$graph]//PERIOD_TITLE/${period_titles[$period]}}"
+            local output_file="$OUTPUT_DIR/img/${graph}_${period}.png"
+            local time_range="${time_periods[$period]}"
+            
+            local cmd="LC_ALL=C rrdtool graph '$output_file' --width '$WIDTH' --height '$HEIGHT' --start $time_range --end now-180s $graph_title"
+            eval "$cmd" || {
+                log_message "ERROR" "Failed to generate graph: ${graph}_${period}"
+                exit 1
+            }
+        done
     done
 }
 
@@ -429,6 +460,35 @@ generate_html() {
             font-size: 0.9em;
             color: var(--secondary-text);
         }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            margin-right: 2px;
+            transition: background-color 0.3s;
+        }
+        .tab:hover {
+            background-color: #e9ecef;
+        }
+        .tab.active {
+            background-color: var(--content-background);
+            border-bottom: 1px solid var(--content-background);
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -436,25 +496,80 @@ generate_html() {
 	<main>
             <section id="chrony-graphs">
                 <h2>Chrony Graphs <a target="_blank" href="https://chrony-project.org/doc/4.3/chronyc.html#:~:text=System%20clock-,tracking,-The%20tracking%20command">[Data Legend]</a></h2>
-                <div class="graph-grid">
-                    <figure>
-                        <img src="img/chrony_serverstats.png" alt="Chrony server statistics graph">
-                    </figure>
-                    <figure>
-                        <img src="img/chrony_offset.png" alt="Chrony system clock offset graph">
-                    </figure>
-                    <figure>
-                        <img src="img/chrony_tracking.png" alt="Chrony system clock tracking graph">
-                    </figure>
-                    <figure>
-                        <img src="img/chrony_delay.png" alt="Chrony sync delay graph">
-                    </figure>
-                    <figure>
-                        <img src="img/chrony_frequency.png" alt="Chrony clock frequency graph">
-                    </figure>
-                    <figure>
-                        <img src="img/chrony_drift.png" alt="Chrony clock frequency drift graph">
-                    </figure>
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="showTab('day')">Day</div>
+                    <div class="tab" onclick="showTab('week')">Week</div>
+                    <div class="tab" onclick="showTab('month')">Month</div>
+                </div>
+                
+                <div id="day-content" class="tab-content active">
+                    <div class="graph-grid">
+                        <figure>
+                            <img src="img/chrony_serverstats_day.png" alt="Chrony server statistics graph - day">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_offset_day.png" alt="Chrony system clock offset graph - day">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_tracking_day.png" alt="Chrony system clock tracking graph - day">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_delay_day.png" alt="Chrony sync delay graph - day">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_frequency_day.png" alt="Chrony clock frequency graph - day">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_drift_day.png" alt="Chrony clock frequency drift graph - day">
+                        </figure>
+                    </div>
+                </div>
+                
+                <div id="week-content" class="tab-content">
+                    <div class="graph-grid">
+                        <figure>
+                            <img src="img/chrony_serverstats_week.png" alt="Chrony server statistics graph - week">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_offset_week.png" alt="Chrony system clock offset graph - week">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_tracking_week.png" alt="Chrony system clock tracking graph - week">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_delay_week.png" alt="Chrony sync delay graph - week">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_frequency_week.png" alt="Chrony clock frequency graph - week">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_drift_week.png" alt="Chrony clock frequency drift graph - week">
+                        </figure>
+                    </div>
+                </div>
+                
+                <div id="month-content" class="tab-content">
+                    <div class="graph-grid">
+                        <figure>
+                            <img src="img/chrony_serverstats_month.png" alt="Chrony server statistics graph - month">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_offset_month.png" alt="Chrony system clock offset graph - month">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_tracking_month.png" alt="Chrony system clock tracking graph - month">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_delay_month.png" alt="Chrony sync delay graph - month">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_frequency_month.png" alt="Chrony clock frequency graph - month">
+                        </figure>
+                        <figure>
+                            <img src="img/chrony_drift_month.png" alt="Chrony clock frequency drift graph - month">
+                        </figure>
+                    </div>
                 </div>
             </section>
 
@@ -499,6 +614,17 @@ generate_html() {
             <p>Page generated on: ${GENERATED_TIMESTAMP}</p>
         </footer>
     </div>
+    
+    <script>
+        function showTab(period) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(period + '-content').classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
 </body>
 </html>
 EOF
@@ -509,6 +635,7 @@ main() {
     validate_numeric "$WIDTH" "WIDTH"
     validate_numeric "$HEIGHT" "HEIGHT"
     validate_numeric "$TIMEOUT_SECONDS" "TIMEOUT_SECONDS"
+    validate_numeric "$SERVER_STATS_UPPER_LIMIT" "SERVER_STATS_UPPER_LIMIT"
     check_commands
     setup_directories
     generate_vnstat_images
