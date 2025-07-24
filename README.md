@@ -7,10 +7,12 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 
 ## Features
 
-- **HTML report**: Creates a styled HTML page with embedded graphs and raw `chronyc` command outputs.
-- **Network  monitoring** : vnStat
+- **Multi-period time views**: View Chrony statistics across day, week, and month periods with tabbed interface
+- **HTML report**: Creates a styled HTML page with embedded graphs and raw `chronyc` command outputs
+- **Network monitoring**: vnStat integration for comprehensive network traffic analysis
 - **Chrony statistics**
-- **Lightweight**: Designed to be resource-efficient, with minimal overhead and no heavy dependencies.
+- **Data quality**: Filters aberrant values during Chrony restarts to maintain graph readability
+- **Lightweight**: Designed to be resource-efficient, with minimal overhead and no heavy dependencies
 
 ## Prerequisites
 
@@ -71,6 +73,11 @@ The script includes a configuration section at the top of `chrony-network-stats.
    WIDTH=800
    HEIGHT=300
    TIMEOUT_SECONDS=5
+
+   ## When chrony restarts, it can generate abnormally high statistical values (e.g., 12M packets)
+   ## that distort the graph scale. This parameter filters out values above the threshold,
+   ## creating gaps in the graph instead of displaying misleading spikes.
+   SERVER_STATS_UPPER_LIMIT=100000
    #########################
    [...]
    ```
@@ -85,8 +92,9 @@ The script includes a configuration section at the top of `chrony-network-stats.
    ```
 
 2. **View the Output**:
-   - The HTML report is generated at `/var/www/chrony-network-stats/index.html`.
-   - Serve this file via a web server (e.g., Apache or Nginx).
+   - The HTML report is generated at `/var/www/chrony-network-stats/index.html`
+   - Features tabbed interface with Day/Week/Month views for Chrony statistics
+   - Serves this file via a web server (e.g., Apache or Nginx)
 
    [See here how to serve via nginx in localhost](nginx.md)
 
