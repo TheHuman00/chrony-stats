@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-#### Configuration ####
+####################### Configuration ######################
 INTERFACE="eth0"
 
 PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
@@ -17,10 +17,15 @@ HEIGHT=300
 TIMEOUT_SECONDS=5
 
 ## When chrony restarts, it can generate abnormally high statistical values (e.g., 12M packets)
-## that distort the graph scale. This parameter filters out values above the threshold,
+## This parameter filters out values above the threshold,
 ## creating gaps in the graph instead of displaying misleading spikes.
 SERVER_STATS_UPPER_LIMIT=100000
-#######################
+
+## You can display the link to the repo 'chrony-stats' in the HTML footer
+## Not required | Default: no
+GITHUB_REPO_LINK_SHOW="no"
+
+##############################################################
 
 log_message() {
     local level="$1"
@@ -612,6 +617,13 @@ generate_html() {
 
         <footer>
             <p>Page generated on: ${GENERATED_TIMESTAMP}</p>
+EOF
+    if [[ "$GITHUB_REPO_LINK_SHOW" == "yes" ]]; then
+        cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
+            <p>Made with ❤️ by TheHuman00 | <a href="https://github.com/TheHuman00/chrony-stats" target="_blank">View on GitHub</a></p>
+EOF
+    fi
+    cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
         </footer>
     </div>
     
