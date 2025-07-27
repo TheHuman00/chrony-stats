@@ -19,7 +19,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 
 **Install dependencies** (on Debian/Ubuntu-based systems):
 
-#### **For full functionality (Chrony + Network stats):**
+### **For full functionality (Chrony + Network stats):**
    ```bash
    sudo apt update
    sudo apt install vnstat vnstati rrdtool chrony
@@ -37,7 +37,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    ``` 
    **If not eth0** : ⚠️ Change your network interface in [Configuration](#configuration) section !!
 
-#### **For Chrony-only monitoring (set `ENABLE_NETWORK_STATS="no"`):**
+### **For Chrony-only monitoring (set `ENABLE_NETWORK_STATS="no"`):**
    ```bash
    sudo apt update
    sudo apt install rrdtool chrony
