@@ -18,11 +18,14 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 ## Prerequisites
 
 **Install dependencies** (on Debian/Ubuntu-based systems):
+
+#### **For full functionality (Chrony + Network stats):**
    ```bash
    sudo apt update
    sudo apt install vnstat vnstati rrdtool chrony
    ```
-**Configure vnStat**:
+
+**Configure vnStat**
    Ensure `vnstat` is monitoring the correct network interface (e.g., `eth0`):
    Find your interface here :
    ```bash
@@ -34,6 +37,11 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
    ``` 
    **If not eth0** : ⚠️ Change your network interface in [Configuration](#configuration) section !!
 
+#### **For Chrony-only monitoring (set `ENABLE_NETWORK_STATS="no"`):**
+   ```bash
+   sudo apt update
+   sudo apt install rrdtool chrony
+   ```
 
 ## Installation
 
@@ -57,7 +65,10 @@ The script includes a configuration section at the top of `chrony-network-stats.
 
    ```bash
    [...]
-   #### Configuration ####
+   ####################### Configuration ######################
+
+   # Enable or disable network statistics generation using vnStat
+   ENABLE_NETWORK_STATS="yes"
 
    # ⚠️ IMPORTANT: Replace "eth0" with your actual interface 
    #    (e.g., ens33, enp0s3, wlan0, ...)
@@ -83,7 +94,7 @@ The script includes a configuration section at the top of `chrony-network-stats.
    ## You can display or not the link to the chrony-stats GitHub repository in the HTML page
    ## It's completely optional by default - feel free to use it however you want, no credit needed! 👍
    GITHUB_REPO_LINK_SHOW="no"
-   #########################
+   ##############################################################
    [...]
    ```
    Close with Ctrl+X --> Y --> Enter

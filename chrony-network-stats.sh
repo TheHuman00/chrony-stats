@@ -2,28 +2,25 @@
 set -e
 
 ####################### Configuration ######################
-INTERFACE="eth0"
+
+ENABLE_NETWORK_STATS="yes" ## Enable or disable network statistics generation using vnStat
+INTERFACE="eth0" ## Network interface to monitor (e.g., eth0, wlan0)
 
 PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
-OUTPUT_DIR="/var/www/html/chrony-network-stats"
-HTML_FILENAME="index.html"
+OUTPUT_DIR="/var/www/html/chrony-network-stats" ## Output directory for HTML and images
+HTML_FILENAME="index.html" ## Output HTML file name
 
 ENABLE_LOGGING="yes"
 LOG_FILE="/var/log/chrony-network-stats.log"
 RRD_DIR="/var/lib/chrony-rrd"
 RRD_FILE="$RRD_DIR/chrony.rrd"
-WIDTH=800
-HEIGHT=300
+
+WIDTH=800   ## Width of the generated graphs
+HEIGHT=300  ## Height of the generated graphs
 TIMEOUT_SECONDS=5
+SERVER_STATS_UPPER_LIMIT=100000 ## When chrony restarts, it generate abnormally high values (e.g., 12M) | This filters out values above the threshold
 
-## When chrony restarts, it can generate abnormally high statistical values (e.g., 12M packets)
-## This parameter filters out values above the threshold,
-## creating gaps in the graph instead of displaying misleading spikes.
-SERVER_STATS_UPPER_LIMIT=100000
-
-## You can display the link to the repo 'chrony-stats' in the HTML footer
-## Not required | Default: no
-GITHUB_REPO_LINK_SHOW="no"
+GITHUB_REPO_LINK_SHOW="no" ## You can display the link to the repo 'chrony-stats' in the HTML footer | Not required | Default: no
 
 ##############################################################
 
@@ -46,7 +43,12 @@ validate_numeric() {
 }
 
 check_commands() {
-    local commands=("vnstati" "rrdtool" "chronyc" "sudo" "timeout")
+    local commands=("rrdtool" "chronyc" "sudo" "timeout")
+    
+    if [[ "$ENABLE_NETWORK_STATS" == "yes" ]]; then
+        commands+=("vnstati")
+    fi
+    
     for cmd in "${commands[@]}"; do
         if ! command -v "$cmd" &>/dev/null; then
             log_message "ERROR" "Command '$cmd' not found in PATH."
@@ -70,6 +72,11 @@ setup_directories() {
 }
 
 generate_vnstat_images() {
+    if [[ "$ENABLE_NETWORK_STATS" != "yes" ]]; then
+        log_message "INFO" "Network stats disabled, skipping vnStat image generation..."
+        return 0
+    fi
+    
     log_message "INFO" "Generating vnStat images for interface '$INTERFACE'..."
     local modes=("s" "d" "t" "h" "m" "y")
     for mode in "${modes[@]}"; do
@@ -577,6 +584,10 @@ generate_html() {
                     </div>
                 </div>
             </section>
+EOF
+
+    if [[ "$ENABLE_NETWORK_STATS" == "yes" ]]; then
+        cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
 
             <section id="vnstat-graphs">
                 <h2>vnStati Graphs</h2>
@@ -597,6 +608,10 @@ generate_html() {
                     </tbody>
                 </table>
             </section>
+EOF
+    fi
+
+    cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
 
             <section id="chrony-stats">
                 <h2>Chrony - NTP Statistics</h2>
@@ -643,7 +658,7 @@ EOF
 }
 
 main() {
-    log_message "INFO" "Starting vnstati script..."
+    log_message "INFO" "Starting chrony-network-stats script..."
     validate_numeric "$WIDTH" "WIDTH"
     validate_numeric "$HEIGHT" "HEIGHT"
     validate_numeric "$TIMEOUT_SECONDS" "TIMEOUT_SECONDS"
