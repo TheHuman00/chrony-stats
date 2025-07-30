@@ -69,7 +69,7 @@ The script includes a configuration section at the top of `chrony-network-stats.
 
    # Enable or disable network statistics generation using vnStat
    ENABLE_NETWORK_STATS="yes"
-
+   
    # ⚠️ IMPORTANT: Replace "eth0" with your actual interface 
    #    (e.g., ens33, enp0s3, wlan0, ...)
    INTERFACE="eth0"
@@ -78,22 +78,29 @@ The script includes a configuration section at the top of `chrony-network-stats.
    OUTPUT_DIR="/var/www/html/chrony-network-stats"
    HTML_FILENAME="index.html"
 
-   ENABLE_LOGGING="yes"
-   LOG_FILE="/var/log/chrony-network-stats.log"
    RRD_DIR="/var/lib/chrony-rrd"
    RRD_FILE="$RRD_DIR/chrony.rrd"
+
+   ENABLE_LOGGING="yes"
+   LOG_FILE="/var/log/chrony-network-stats.log"
+
+   # Auto-refresh interval in seconds (0 = disabled, e.g., 300 for 5 minutes)
+   AUTO_REFRESH_SECONDS=0
+
+   ## You can display or not the link to the chrony-stats GitHub repository in the HTML page
+   ## It's completely optional by default - feel free to use it however you want, no credit needed! 👍
+   GITHUB_REPO_LINK_SHOW="no"
+
+   ###### Advanced Configuration ######
+
+   TIMEOUT_SECONDS=5
    WIDTH=800
    HEIGHT=300
-   TIMEOUT_SECONDS=5
 
    ## When chrony restarts, it can generate abnormally high statistical values (e.g., 12M packets)
    ## that distort the graph scale. This parameter filters out values above the threshold,
    ## creating gaps in the graph instead of displaying misleading spikes.
    SERVER_STATS_UPPER_LIMIT=100000
-
-   ## You can display or not the link to the chrony-stats GitHub repository in the HTML page
-   ## It's completely optional by default - feel free to use it however you want, no credit needed! 👍
-   GITHUB_REPO_LINK_SHOW="no"
    ##############################################################
    [...]
    ```

@@ -10,17 +10,22 @@ PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
 OUTPUT_DIR="/var/www/html/chrony-network-stats" ## Output directory for HTML and images
 HTML_FILENAME="index.html" ## Output HTML file name
 
+RRD_DIR="/var/lib/chrony-rrd"
+RRD_FILE="$RRD_DIR/chrony.rrd" ## RRD file for storing chrony statistics
+
 ENABLE_LOGGING="yes"
 LOG_FILE="/var/log/chrony-network-stats.log"
-RRD_DIR="/var/lib/chrony-rrd"
-RRD_FILE="$RRD_DIR/chrony.rrd"
 
-WIDTH=800   ## Width of the generated graphs
-HEIGHT=300  ## Height of the generated graphs
+AUTO_REFRESH_SECONDS=0 ## Auto-refresh interval in seconds (0 = disabled, e.g., 300 for 5 minutes)
+GITHUB_REPO_LINK_SHOW="no" ## You can display the link to the repo 'chrony-stats' in the HTML footer | Not required | Default: no
+
+
+###### Advanced Configuration ######
+
 TIMEOUT_SECONDS=5
 SERVER_STATS_UPPER_LIMIT=100000 ## When chrony restarts, it generate abnormally high values (e.g., 12M) | This filters out values above the threshold
-
-GITHUB_REPO_LINK_SHOW="no" ## You can display the link to the repo 'chrony-stats' in the HTML footer | Not required | Default: no
+WIDTH=800   ## Width of the generated graphs
+HEIGHT=300  ## Height of the generated graphs
 
 ##############################################################
 
@@ -350,12 +355,19 @@ generate_graphs() {
 generate_html() {
     log_message "INFO" "Generating HTML report..."
     local GENERATED_TIMESTAMP=$(date)
+    
+    local AUTO_REFRESH_META=""
+    if [[ "$AUTO_REFRESH_SECONDS" -gt 0 ]]; then
+        AUTO_REFRESH_META="    <meta http-equiv=\"refresh\" content=\"$AUTO_REFRESH_SECONDS\">"
+    fi
+    
     cat >"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+$AUTO_REFRESH_META
     <title>${PAGE_TITLE} - Server Status</title>
     <style>
         :root {
@@ -663,6 +675,7 @@ main() {
     validate_numeric "$HEIGHT" "HEIGHT"
     validate_numeric "$TIMEOUT_SECONDS" "TIMEOUT_SECONDS"
     validate_numeric "$SERVER_STATS_UPPER_LIMIT" "SERVER_STATS_UPPER_LIMIT"
+    validate_numeric "$AUTO_REFRESH_SECONDS" "AUTO_REFRESH_SECONDS"
     check_commands
     setup_directories
     generate_vnstat_images
