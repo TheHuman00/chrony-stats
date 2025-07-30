@@ -22,6 +22,7 @@ GITHUB_REPO_LINK_SHOW="no" ## You can display the link to the repo 'chrony-stats
 
 ###### Advanced Configuration ######
 
+CHRONY_ALLOW_DNS_LOOKUP="yes" ##  Yes allow DNS reverse lookups. No to prevent slow DNS reverse lookups
 TIMEOUT_SECONDS=5
 SERVER_STATS_UPPER_LIMIT=100000 ## When chrony restarts, it generate abnormally high values (e.g., 12M) | This filters out values above the threshold
 WIDTH=800   ## Width of the generated graphs
@@ -94,14 +95,21 @@ generate_vnstat_images() {
 
 collect_chrony_data() {
     log_message "INFO" "Collecting Chrony data..."
+    
+    local CHRONYC_OPTS=""
+    if [[ "$CHRONY_ALLOW_DNS_LOOKUP" == "no" ]]; then
+        CHRONYC_OPTS="-n"
+        log_message "INFO" "Using chronyc -n option to prevent DNS lookups"
+    fi
+    
     get_html() {
-        timeout "$TIMEOUT_SECONDS"s sudo chronyc "$1" -v 2>&1 | sed 's/&/\&/g;s/</\</g;s/>/\>/g;s/$/<br>/' || {
+        timeout "$TIMEOUT_SECONDS"s sudo chronyc $CHRONYC_OPTS "$1" -v 2>&1 | sed 's/&/\&/g;s/</\</g;s/>/\>/g;s/$/<br>/' || {
             log_message "ERROR" "Failed to collect chronyc $1 data"
             return 1
         }
     }
 
-    RAW_TRACKING=$(timeout "$TIMEOUT_SECONDS"s sudo chronyc tracking) || {
+    RAW_TRACKING=$(timeout "$TIMEOUT_SECONDS"s sudo chronyc $CHRONYC_OPTS tracking) || {
         log_message "ERROR" "Failed to collect chronyc tracking data"
         exit 1
     }
@@ -139,7 +147,12 @@ extract_chronyc_values() {
     DISPERSION=$(extract_val "Root dispersion" "NF-1")
     STRATUM=$(extract_val "Stratum" "3")
 
-    RAW_STATS=$(LC_ALL=C sudo chronyc serverstats) || {
+    local CHRONYC_OPTS=""
+    if [[ "$CHRONY_ALLOW_DNS_LOOKUP" == "no" ]]; then
+        CHRONYC_OPTS="-n"
+    fi
+
+    RAW_STATS=$(LC_ALL=C sudo chronyc $CHRONYC_OPTS serverstats) || {
         log_message "ERROR" "Failed to collect chronyc serverstats"
         exit 1
     }
@@ -355,6 +368,11 @@ generate_graphs() {
 generate_html() {
     log_message "INFO" "Generating HTML report..."
     local GENERATED_TIMESTAMP=$(date)
+    
+    local CHRONYC_DISPLAY_OPTS=""
+    if [[ "$CHRONY_ALLOW_DNS_LOOKUP" == "no" ]]; then
+        CHRONYC_DISPLAY_OPTS=" -n"
+    fi
     
     local AUTO_REFRESH_META=""
     if [[ "$AUTO_REFRESH_SECONDS" -gt 0 ]]; then
@@ -628,16 +646,16 @@ EOF
             <section id="chrony-stats">
                 <h2>Chrony - NTP Statistics</h2>
 
-                <h3>Command: <code>chronyc sources -v</code></h3>
+                <h3>Command: <code>chronyc${CHRONYC_DISPLAY_OPTS} sources -v</code></h3>
                 <pre><code>${CHRONYC_SOURCES}</code></pre>
 
-                <h3>Command: <code>chronyc selectdata -v</code></h3>
+                <h3>Command: <code>chronyc${CHRONYC_DISPLAY_OPTS} selectdata -v</code></h3>
                 <pre><code>${CHRONYC_SELECTDATA}</code></pre>
 
-                <h3>Command: <code>chronyc sourcestats -v</code></h3>
+                <h3>Command: <code>chronyc${CHRONYC_DISPLAY_OPTS} sourcestats -v</code></h3>
                 <pre><code>${CHRONYC_SOURCESTATS}</code></pre>
 
-                <h3>Command: <code>chronyc tracking</code></h3>
+                <h3>Command: <code>chronyc${CHRONYC_DISPLAY_OPTS} tracking</code></h3>
                 <pre><code>${CHRONYC_TRACKING_HTML}</code></pre>
             </section>
         </main>

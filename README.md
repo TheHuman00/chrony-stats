@@ -93,6 +93,11 @@ The script includes a configuration section at the top of `chrony-network-stats.
 
    ###### Advanced Configuration ######
 
+   ## DNS Lookup Configuration for chronyc commands
+   ## "yes" = Allow DNS reverse lookups (default behavior)
+   ## "no" = Prevent DNS reverse lookups using -n option (faster, reduces network traffic)
+   CHRONY_ALLOW_DNS_LOOKUP="yes"
+
    TIMEOUT_SECONDS=5
    WIDTH=800
    HEIGHT=300
