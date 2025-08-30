@@ -23,12 +23,14 @@ GITHUB_REPO_LINK_SHOW="no" ## You can display the link to the repo 'chrony-stats
 ###### Advanced Configuration ######
 
 CHRONY_ALLOW_DNS_LOOKUP="yes" ##  Yes allow DNS reverse lookups. No to prevent slow DNS reverse lookups
+DISPLAY_PRESET="default" # Preset for large screens. Options: default | 2k | 4k
+
 TIMEOUT_SECONDS=5
 SERVER_STATS_UPPER_LIMIT=100000 ## When chrony restarts, it generate abnormally high values (e.g., 12M) | This filters out values above the threshold
-WIDTH=800   ## Width of the generated graphs
-HEIGHT=300  ## Height of the generated graphs
-
 ##############################################################
+
+WIDTH=800   ## These graph sizes are changing with DISPLAY_PRESET
+HEIGHT=300  ## 
 
 log_message() {
     local level="$1"
@@ -37,6 +39,37 @@ log_message() {
     	echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" >> "$LOG_FILE"
     fi
     	echo "[$level] $message"
+}
+
+configure_display_preset() {
+    local preset="${DISPLAY_PRESET,,}"
+    local scale_pct=100
+    local container_px=1400
+    local font_px=16
+
+    case "$preset" in
+        1080p|1080|default)
+            scale_pct=100; container_px=1400; font_px=16 ;;
+        2k|1440p|qhd)
+            scale_pct=135; container_px=2000; font_px=18 ;;
+        4k|2160p|uhd)
+            scale_pct=170; container_px=2600; font_px=20 ;;
+        *)
+            scale_pct=100; container_px=1400; font_px=16 ;;
+    esac
+
+    WIDTH=$(( WIDTH * scale_pct / 100 ))
+    HEIGHT=$(( HEIGHT * scale_pct / 100 ))
+
+    CSS_CUSTOM_ROOT=$(cat <<EOF
+:root {
+    --container-max: ${container_px}px;
+    --font-size-base: ${font_px}px;
+}
+EOF
+)
+
+    log_message "INFO" "Preset '${DISPLAY_PRESET}' -> graph ${WIDTH}x${HEIGHT}, container ${container_px}px, font ${font_px}px"
 }
 
 validate_numeric() {
@@ -396,7 +429,10 @@ $AUTO_REFRESH_META
             --border-color: #787879;
             --code-background: #e1e1e1;
             --code-text: #000000;
+            --container-max: 1400px;
+            --font-size-base: 16px;
         }
+$CSS_CUSTOM_ROOT
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
@@ -404,9 +440,10 @@ $AUTO_REFRESH_META
             background-color: var(--background-color);
             color: var(--primary-text);
             line-height: 1.6;
+            font-size: var(--font-size-base);
         }
         .container {
-            max-width: 1400px;
+            max-width: var(--container-max);
             margin: 0 auto;
             background-color: var(--content-background);
             padding: 20px 20px;
@@ -752,6 +789,7 @@ main() {
     validate_numeric "$TIMEOUT_SECONDS" "TIMEOUT_SECONDS"
     validate_numeric "$SERVER_STATS_UPPER_LIMIT" "SERVER_STATS_UPPER_LIMIT"
     validate_numeric "$AUTO_REFRESH_SECONDS" "AUTO_REFRESH_SECONDS"
+    configure_display_preset
     check_commands
     setup_directories
     generate_vnstat_images

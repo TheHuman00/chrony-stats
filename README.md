@@ -9,7 +9,7 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 
 - **Multi-period time views**: View Chrony statistics across day, week, and month periods
 - **HTML report**: HTML page with graphs and raw `chronyc` command outputs
-- **Network monitoring**: withvnStat
+- **Network monitoring**: with vnStat
 - **Chrony statistics**
 - **Data quality**: Filters aberrant values during Chrony restarts
 - **Lightweight**
@@ -98,14 +98,21 @@ The script includes a configuration section at the top of `chrony-network-stats.
    ## "no" = Prevent DNS reverse lookups using -n option (faster, reduces network traffic)
    CHRONY_ALLOW_DNS_LOOKUP="yes"
 
+   # Screen preset (page & graphs). Options: default | 2k | 4k
+   # Adjusts main container width, base font size, and graph image resolution
+   DISPLAY_PRESET="default"
+
    TIMEOUT_SECONDS=5
-   WIDTH=800
-   HEIGHT=300
 
    ## When chrony restarts, it can generate abnormally high statistical values (e.g., 12M packets)
    ## that distort the graph scale. This parameter filters out values above the threshold,
    ## creating gaps in the graph instead of displaying misleading spikes.
    SERVER_STATS_UPPER_LIMIT=100000
+   ##############################################################
+
+   # Base graph size (scaled automatically by DISPLAY_PRESET)
+   WIDTH=800
+   HEIGHT=300
    ##############################################################
    [...]
    ```
@@ -120,13 +127,21 @@ The script includes a configuration section at the top of `chrony-network-stats.
    ```
 
 2. **View the Output**:
-   - The HTML report is generated at `/var/www/chrony-network-stats/index.html`
+   - The HTML report is generated at `/var/www/html/chrony-network-stats/index.html`
    - Serves this file via a web server (e.g., Apache or Nginx)
 
    [See here how to serve via nginx in localhost](nginx.md)
 
 3. **Monitor Logs**:
    Check `/var/log/chrony-network-stats.log` for execution details and errors.
+
+### About responsiveness and large screens
+
+Set `DISPLAY_PRESET` to `2k` or `4k` if the main container looks too small on high-resolution displays.
+The preset will:
+- Increase the max width of the main container
+- Increase the base font size
+- Generate larger graph images to keep them sharp on big screens
 
 ## Setting up a crontab (Run every 5 minutes)
 
