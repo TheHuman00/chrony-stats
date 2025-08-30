@@ -482,6 +482,27 @@ $AUTO_REFRESH_META
             border: 1px solid var(--border-color);
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: zoom-in;
+        }
+        .lightbox-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: zoom-out;
+        }
+        .lightbox-overlay.open {
+            display: flex;
+        }
+        .lightbox-img {
+            width: 96vw;
+            height: 94vh; 
+            object-fit: contain;
+            border: 0;
+            cursor: zoom-out;
         }
         pre {
             background-color: var(--code-background);
@@ -671,7 +692,11 @@ EOF
     cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
         </footer>
     </div>
-    
+
+    <div id="lightbox" class="lightbox-overlay" aria-hidden="true" role="dialog">
+        <img id="lightbox-img" class="lightbox-img" alt="Expanded graph">
+    </div>
+
     <script>
         function showTab(period) {
             const contents = document.querySelectorAll('.tab-content');
@@ -679,8 +704,41 @@ EOF
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             document.getElementById(period + '-content').classList.add('active');
-            event.target.classList.add('active');
+            const evt = event || window.event; // works with inline onclick
+            if (evt && evt.target) {
+                evt.target.classList.add('active');
+            }
         }
+
+        (function enableImageLightbox() {
+            const overlay = document.getElementById('lightbox');
+            const overlayImg = document.getElementById('lightbox-img');
+            if (!overlay || !overlayImg) return;
+
+            const open = (src, alt) => {
+                overlayImg.src = src;
+                overlayImg.alt = alt || 'Expanded image';
+                overlay.classList.add('open');
+                overlay.setAttribute('aria-hidden', 'false');
+                // Prevent background scroll
+                document.body.style.overflow = 'hidden';
+            };
+            const close = () => {
+                overlay.classList.remove('open');
+                overlay.setAttribute('aria-hidden', 'true');
+                overlayImg.src = '';
+                document.body.style.overflow = '';
+            };
+
+            document.querySelectorAll('.container img').forEach(img => {
+                img.addEventListener('click', () => open(img.src, img.alt));
+            });
+            overlay.addEventListener('click', close);
+            overlayImg.addEventListener('click', close);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && overlay.classList.contains('open')) close();
+            });
+        })();
     </script>
 </body>
 </html>
