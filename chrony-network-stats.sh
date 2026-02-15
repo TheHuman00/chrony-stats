@@ -136,7 +136,7 @@ collect_chrony_data() {
     fi
     
     get_html() {
-        timeout "$TIMEOUT_SECONDS"s sudo chronyc $CHRONYC_OPTS "$1" -v 2>&1 | sed 's/&/\&/g;s/</\</g;s/>/\>/g;s/$/<br>/' || {
+        timeout "$TIMEOUT_SECONDS"s sudo chronyc $CHRONYC_OPTS "$1" -v 2>&1 | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g' || {
             log_message "ERROR" "Failed to collect chronyc $1 data"
             return 1
         }
@@ -146,7 +146,7 @@ collect_chrony_data() {
         log_message "ERROR" "Failed to collect chronyc tracking data"
         exit 1
     }
-    CHRONYC_TRACKING_HTML=$(echo "$RAW_TRACKING" | sed 's/&/\&/g;s/</\</g;s/>/\>/g;s/$/<br>/')
+    CHRONYC_TRACKING_HTML=$(echo "$RAW_TRACKING" | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g')
     CHRONYC_SOURCES=$(get_html sources) || exit 1
     CHRONYC_SOURCESTATS=$(get_html sourcestats) || exit 1
     CHRONYC_SELECTDATA=$(get_html selectdata) || exit 1
