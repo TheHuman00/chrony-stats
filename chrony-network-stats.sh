@@ -588,7 +588,7 @@ $CSS_CUSTOM_ROOT
     <div class="container">
 	<main>
             <section id="chrony-graphs">
-                <h2>Chrony Graphs <a target="_blank" href="https://chrony-project.org/doc/4.3/chronyc.html#:~:text=System%20clock-,tracking,-The%20tracking%20command">[Data Legend]</a></h2>
+                <h2>Chrony Graphs <a target="_blank" href="https://chrony-project.org/doc/latest/chronyc.html#:~:text=System%20clock-,tracking,-The%20tracking%20command">[Data Legend]</a></h2>
                 
                 <div class="tabs">
                     <div class="tab active" onclick="showTab('day')">Day</div>
