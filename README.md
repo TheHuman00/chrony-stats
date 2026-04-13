@@ -47,12 +47,12 @@ Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://
 
 1. **Download the script**:
    ```bash
-   wget https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/chrony-network-stats.sh -O $HOME/chrony-network-stats.sh
+   curl -O https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/chrony-network-stats.sh
    ```
 
 2. **Make the script executable**:
    ```bash
-   sudo chmod +x $HOME/chrony-network-stats.sh
+   sudo chmod +x ./chrony-network-stats.sh
    ```
 
 ## Configuration
