@@ -271,116 +271,109 @@ generate_graphs() {
             'COMMENT: \l' \
             'AREA:pkts_recv#C4FFC4:Packets received            ' \
             'LINE1:pkts_recv#00E000:' \
-            'GPRINT:pkts_recv:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:pkts_recv:MIN:Min\: %5.2lf%s' \
-            'GPRINT:pkts_recv:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:pkts_recv:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:pkts_recv:LAST:Cur\: %6.2lf%s' \
+            'GPRINT:pkts_recv:MIN:Min\: %6.2lf%s' \
+            'GPRINT:pkts_recv:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:pkts_recv:MAX:Max\: %6.2lf%s\l' \
             'LINE1:pkts_drop#FF8C00:Packets dropped             ' \
-            'GPRINT:pkts_drop:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:pkts_drop:MIN:Min\: %5.2lf%s' \
-            'GPRINT:pkts_drop:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:pkts_drop:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:pkts_drop:LAST:Cur\: %6.2lf%s' \
+            'GPRINT:pkts_drop:MIN:Min\: %6.2lf%s' \
+            'GPRINT:pkts_drop:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:pkts_drop:MAX:Max\: %6.2lf%s\l' \
             'LINE1:cmd_recv#4169E1:Command packets received    ' \
-            'GPRINT:cmd_recv:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:cmd_recv:MIN:Min\: %5.2lf%s' \
-            'GPRINT:cmd_recv:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:cmd_recv:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:cmd_recv:LAST:Cur\: %6.2lf%s' \
+            'GPRINT:cmd_recv:MIN:Min\: %6.2lf%s' \
+            'GPRINT:cmd_recv:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:cmd_recv:MAX:Max\: %6.2lf%s\l' \
             'LINE1:cmd_drop#FFD700:Command packets dropped     ' \
-            'GPRINT:cmd_drop:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:cmd_drop:MIN:Min\: %5.2lf%s' \
-            'GPRINT:cmd_drop:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:cmd_drop:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:cmd_drop:LAST:Cur\: %6.2lf%s' \
+            'GPRINT:cmd_drop:MIN:Min\: %6.2lf%s' \
+            'GPRINT:cmd_drop:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:cmd_drop:MAX:Max\: %6.2lf%s\l' \
             'LINE1:log_drop#9400D3:Client log records dropped  ' \
-            'GPRINT:log_drop:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:log_drop:MIN:Min\: %5.2lf%s' \
-            'GPRINT:log_drop:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:log_drop:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:log_drop:LAST:Cur\: %6.2lf%s' \
+            'GPRINT:log_drop:MIN:Min\: %6.2lf%s' \
+            'GPRINT:log_drop:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:log_drop:MAX:Max\: %6.2lf%s\l' \
             'LINE1:nts_ke_acc#8A2BE2:NTS-KE connections accepted ' \
-            'GPRINT:nts_ke_acc:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:nts_ke_acc:MIN:Min\: %5.2lf%s' \
-            'GPRINT:nts_ke_acc:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:nts_ke_acc:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:nts_ke_acc:LAST:Cur\: %6.2lf%s' \
+            'GPRINT:nts_ke_acc:MIN:Min\: %6.2lf%s' \
+            'GPRINT:nts_ke_acc:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:nts_ke_acc:MAX:Max\: %6.2lf%s\l' \
             'LINE1:nts_ke_drop#9370DB:NTS-KE connections dropped  ' \
-            'GPRINT:nts_ke_drop:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:nts_ke_drop:MIN:Min\: %5.2lf%s' \
-            'GPRINT:nts_ke_drop:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:nts_ke_drop:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:nts_ke_drop:LAST:Cur\: %6.2lf%s' \
+            'GPRINT:nts_ke_drop:MIN:Min\: %6.2lf%s' \
+            'GPRINT:nts_ke_drop:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:nts_ke_drop:MAX:Max\: %6.2lf%s\l' \
             'LINE1:auth_pkts#FF0000:Authenticated NTP packets   ' \
-            'GPRINT:auth_pkts:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:auth_pkts:MIN:Min\: %5.2lf%s' \
-            'GPRINT:auth_pkts:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:auth_pkts:MAX:Max\: %5.2lf%s\l'"
+            'GPRINT:auth_pkts:LAST:Cur\: %6.2lf%s' \
+            'GPRINT:auth_pkts:MIN:Min\: %6.2lf%s' \
+            'GPRINT:auth_pkts:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:auth_pkts:MAX:Max\: %6.2lf%s\l'"
         ["chrony_tracking"]="--title 'Chrony Dispersion + Stratum - PERIOD_TITLE' --vertical-label 'milliseconds' --alt-autoscale \
             --units-exponent 0 \
             DEF:stratum='$RRD_FILE':stratum:AVERAGE \
-            DEF:freq='$RRD_FILE':frequency:AVERAGE \
-            DEF:skew='$RRD_FILE':skew:AVERAGE \
-            DEF:delay='$RRD_FILE':delay:AVERAGE \
             DEF:dispersion='$RRD_FILE':dispersion:AVERAGE \
-            CDEF:skew_scaled=skew,100,* \
-            CDEF:delay_scaled=delay,1000,* \
             CDEF:disp_scaled=dispersion,1000,* \
             'COMMENT: \l' \
             'LINE1:stratum#00ff00:Stratum                                    ' \
-            'GPRINT:stratum:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:stratum:MIN:Min\: %5.2lf%s' \
-            'GPRINT:stratum:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:stratum:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:stratum:LAST:  Cur\: %6.2lf%s' \
+            'GPRINT:stratum:MIN:Min\: %6.2lf%s' \
+            'GPRINT:stratum:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:stratum:MAX:Max\: %6.2lf%s\l' \
             'LINE1:disp_scaled#9400D3:Root dispersion    [Root dispersion]       ' \
-            'GPRINT:disp_scaled:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:disp_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:disp_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:disp_scaled:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_offset"]="--title 'Chrony System Time Offset - PERIOD_TITLE' --vertical-label 'milliseconds' \
+            'GPRINT:disp_scaled:LAST:  Cur\: %6.2lf%s' \
+            'GPRINT:disp_scaled:MIN:Min\: %6.2lf%s' \
+            'GPRINT:disp_scaled:AVERAGE:Avg\: %6.2lf%s' \
+            'GPRINT:disp_scaled:MAX:Max\: %6.2lf%s\l'"
+        ["chrony_offset"]="--title 'Chrony System Time Offset - PERIOD_TITLE' --vertical-label 'seconds' \
             DEF:offset='$RRD_FILE':offset:AVERAGE \
-	    DEF:systime='$RRD_FILE':systime:AVERAGE \
-	    CDEF:systime_scaled=systime,1000,* \
-	    CDEF:offset_ms=offset,1000,* \
+	        DEF:systime='$RRD_FILE':systime:AVERAGE \
+	        CDEF:systime_scaled=systime,1,* \
+	        CDEF:offset_ms=offset,1,* \
             'LINE2:offset_ms#00ff00:Actual Offset from NTP Source [Last Offset] ' \
-            'GPRINT:offset_ms:LAST:  Cur\: %5.2lf%s' \
-	    'GPRINT:offset_ms:MIN:Min\: %5.2lf%s' \
-            'GPRINT:offset_ms:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:offset_ms:MAX:Max\: %5.2lf%s\l' \
+            'GPRINT:offset_ms:LAST:  Cur\: %7.2lf%s' \
+	        'GPRINT:offset_ms:MIN:Min\: %7.2lf%s' \
+            'GPRINT:offset_ms:AVERAGE:Avg\: %7.2lf%s' \
+            'GPRINT:offset_ms:MAX:Max\: %7.2lf%s\l' \
             'LINE1:systime_scaled#4169E1:System Clock Adjustment       [System Time] ' \
-            'GPRINT:systime_scaled:LAST:  Cur\: %5.2lf%s' \
-            'GPRINT:systime_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:systime_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:systime_scaled:MAX:Max\: %5.2lf%s\l'"
-        ["chrony_delay"]="--title 'Chrony Root Delay - PERIOD_TITLE' --vertical-label 'milliseconds' --units-exponent 0 \
+            'GPRINT:systime_scaled:LAST:  Cur\: %7.2lf%s' \
+            'GPRINT:systime_scaled:MIN:Min\: %7.2lf%s' \
+            'GPRINT:systime_scaled:AVERAGE:Avg\: %7.2lf%s' \
+            'GPRINT:systime_scaled:MAX:Max\: %7.2lf%s\l'"
+        ["chrony_delay"]="--title 'Chrony Root Delay - PERIOD_TITLE' --vertical-label 'seconds' \
             DEF:delay='$RRD_FILE':delay:AVERAGE \
-            CDEF:delay_ms=delay,1000,* \
+            CDEF:delay_ms=delay,1,* \
             LINE2:delay_ms#00ff00:'Network Delay to Root Source   [Root Delay]  ' \
-            'GPRINT:delay_ms:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:delay_ms:MIN:Min\: %5.2lf%s' \
-            'GPRINT:delay_ms:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:delay_ms:MAX:Max\: %5.2lf%s\l'"
+            'GPRINT:delay_ms:LAST:Cur\: %7.2lf%s' \
+            'GPRINT:delay_ms:MIN:Min\: %7.2lf%s' \
+            'GPRINT:delay_ms:AVERAGE:Avg\: %7.2lf%s' \
+            'GPRINT:delay_ms:MAX:Max\: %7.2lf%s\l'"
         ["chrony_frequency"]="--title 'Chrony Clock Frequency Error - PERIOD_TITLE' --vertical-label 'ppm'\
             DEF:freq='$RRD_FILE':frequency:AVERAGE \
             DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
             CDEF:resfreq_scaled=resid_freq,100,* \
             CDEF:freq_scaled=freq,1,* \
             'LINE2:freq_scaled#00ff00:Natural Clock Drift      [Frequency]         ' \
-            'GPRINT:freq_scaled:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:freq_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:freq_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:freq_scaled:MAX:Max\: %5.2lf%s\n' \
+            'GPRINT:freq_scaled:LAST:Cur\: %7.2lf%s' \
+            'GPRINT:freq_scaled:MIN:Min\: %7.2lf%s' \
+            'GPRINT:freq_scaled:AVERAGE:Avg\: %7.2lf%s' \
+            'GPRINT:freq_scaled:MAX:Max\: %7.2lf%s\n' \
             'LINE1:resfreq_scaled#4169E1:Residual Drift (x100)    [Residual freq]     ' \
-            'GPRINT:resfreq_scaled:LAST:Cur\: %5.2lf%s' \
-            'GPRINT:resfreq_scaled:MIN:Min\: %5.2lf%s' \
-            'GPRINT:resfreq_scaled:AVERAGE:Avg\: %5.2lf%s' \
-            'GPRINT:resfreq_scaled:MAX:Max\: %5.2lf%s\l'"
+            'GPRINT:resfreq_scaled:LAST:Cur\: %7.2lf%s' \
+            'GPRINT:resfreq_scaled:MIN:Min\: %7.2lf%s' \
+            'GPRINT:resfreq_scaled:AVERAGE:Avg\: %7.2lf%s' \
+            'GPRINT:resfreq_scaled:MAX:Max\: %7.2lf%s\l'"
 	["chrony_drift"]="--title 'Chrony Drift Margin Error - PERIOD_TITLE' --vertical-label 'ppm' \
             --units-exponent 0 \
-            DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
             DEF:skew_raw='$RRD_FILE':skew:AVERAGE \
-            CDEF:resfreq_scaled=resid_freq,100,* \
-	    CDEF:skew_scaled=skew_raw,100,* \
+	        CDEF:skew_scaled=skew_raw,100,* \
             'COMMENT: \l' \
             'LINE1:skew_scaled#00ff00:Estimate Drift Error Margin (x100)  [Skew]   ' \
-            'GPRINT:skew_scaled:LAST:Cur\: %5.2lf' \
-            'GPRINT:skew_scaled:MIN:Min\: %5.2lf' \
-            'GPRINT:skew_scaled:AVERAGE:Avg\: %5.2lf' \
-            'GPRINT:skew_scaled:MAX:Max\: %5.2lf\l'"
+            'GPRINT:skew_scaled:LAST:Cur\: %7.2lf' \
+            'GPRINT:skew_scaled:MIN:Min\: %7.2lf' \
+            'GPRINT:skew_scaled:AVERAGE:Avg\: %7.2lf' \
+            'GPRINT:skew_scaled:MAX:Max\: %7.2lf\l'"
     )
 
     for period in "${!time_periods[@]}"; do
