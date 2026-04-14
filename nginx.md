@@ -37,33 +37,4 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 4. Access to your website : 
-Go to `http://127.0.0.1` or `http://localhost` in your web browser
-## Serve Online with Nginx
-
-⚠️ The instructions are meant only to help you quickly serve the HTML report online. If you're planning to expose the report to the internet, you should follow proper best practices for :
-
-- Secure server configuration
-- HTTPS setup
-- Access control, firewalls, and authentication
-- ...
-
-
-1. Same like localy but : 
-```bash
-   sudo nano /etc/nginx/sites-available/chrony-network-stats
-```
-```bash
-server {
-    listen 80;
-    server_name HERE; # HERE PLACE YOUR PUBLIC IP OR DOMAIN NAME
-
-    root /var/www/chrony-network-stats;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ =404;
-    }
-}
-```
-
-
+Go to `http://127.0.0.1` or `http://localhost` in your web browser.
