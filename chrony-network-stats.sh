@@ -22,7 +22,7 @@ GITHUB_REPO_LINK_SHOW="no" ## You can display the link to the repo 'chrony-stats
 
 ###### Advanced Configuration ######
 
-CHRONY_ALLOW_DNS_LOOKUP="yes" ##  Yes allow DNS reverse lookups. No to prevent slow DNS reverse lookups
+CHRONY_ALLOW_DNS_LOOKUP="no" ##  Disabled by default to avoid DNS lookups. Set to "yes" for more readable output (hostnames instead of IPs)
 DISPLAY_PRESET="default" # Preset for large screens. Options: default | 2k | 4k
 
 TIMEOUT_SECONDS=5
