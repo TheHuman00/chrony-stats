@@ -162,7 +162,7 @@ To run the script every 5 minutes with `sudo` privileges, configure the root cro
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This is free and unencumbered software released into the public domain. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
