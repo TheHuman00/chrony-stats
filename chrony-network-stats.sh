@@ -13,7 +13,7 @@ HTML_FILENAME="index.html" ## Output HTML file name
 RRD_DIR="/var/lib/chrony-rrd"
 RRD_FILE="$RRD_DIR/chrony.rrd" ## RRD file for storing chrony statistics
 
-ENABLE_LOGGING="yes"
+ENABLE_LOGGING="no" ## Enable or disable logging to a file
 LOG_FILE="/var/log/chrony-network-stats.log"
 
 AUTO_REFRESH_SECONDS=0 ## Auto-refresh interval in seconds (0 = disabled, e.g., 300 for 5 minutes)
@@ -235,8 +235,7 @@ update_rrd_database() {
 
 generate_graphs() {
     log_message "INFO" "Generating graphs..."
-    local END_TIME=$(date +%s)
-    
+
     declare -A time_periods=(
         ["day"]="end-1d"
         ["week"]="end-1w" 
@@ -442,17 +441,6 @@ $CSS_CUSTOM_ROOT
             padding: 20px 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-        }
-        header {
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 2.5em;
-            color: var(--primary-text);
         }
         section {
             margin-bottom: 40px;
