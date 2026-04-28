@@ -309,18 +309,19 @@ generate_graphs() {
             'GPRINT:auth_pkts:MIN:Min\: %6.2lf%s' \
             'GPRINT:auth_pkts:AVERAGE:Avg\: %6.2lf%s' \
             'GPRINT:auth_pkts:MAX:Max\: %6.2lf%s\l'"
-        ["chrony_tracking"]="--title 'Chrony Dispersion + Stratum - PERIOD_TITLE' --vertical-label 'milliseconds' --alt-autoscale \
-            --units-exponent 0 \
+        ["chrony_tracking"]="--title 'Chrony Dispersion + Stratum - PERIOD_TITLE' --vertical-label 'seconds' \
+            --right-axis 1000:0 --right-axis-label 'Stratum' \
             DEF:stratum='$RRD_FILE':stratum:AVERAGE \
             DEF:dispersion='$RRD_FILE':dispersion:AVERAGE \
-            CDEF:disp_scaled=dispersion,1000,* \
+            CDEF:disp_scaled=dispersion,1,* \
+            CDEF:stratum_scaled=stratum,0.001,* \
             'COMMENT: \l' \
-            'LINE1:stratum#00ff00:Stratum                                    ' \
+            'LINE1:stratum_scaled#00ff00:Stratum            (right axis)               ' \
             'GPRINT:stratum:LAST:  Cur\: %6.2lf%s' \
             'GPRINT:stratum:MIN:Min\: %6.2lf%s' \
             'GPRINT:stratum:AVERAGE:Avg\: %6.2lf%s' \
             'GPRINT:stratum:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:disp_scaled#9400D3:Root dispersion    [Root dispersion]       ' \
+            'LINE1:disp_scaled#9400D3:Root dispersion    [Root dispersion]          ' \
             'GPRINT:disp_scaled:LAST:  Cur\: %6.2lf%s' \
             'GPRINT:disp_scaled:MIN:Min\: %6.2lf%s' \
             'GPRINT:disp_scaled:AVERAGE:Avg\: %6.2lf%s' \
