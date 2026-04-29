@@ -1,172 +1,148 @@
-# Lightweight : Monitoring Chrony and Network
+# Chrony & Network Stats
 
-Bash script designed to monitor **network traffic** and **Chrony** statistics, **generating visual graphs** and an **HTML** report for easy monitoring.
-It’s lightweight, requires minimal system resources, and is ideal for low-resource servers
+A lightweight Bash script that monitors **Chrony** and **network traffic**, generates visual graphs, and produces an HTML report ideal for low-resource servers.
 
-Demo here : [https://thehuman00.github.io/demo-chrony-stats.github.io/](https://thehuman00.github.io/demo-chrony-stats.github.io/)
+**[Live demo here!](https://thehuman00.github.io/demo-chrony-stats.github.io/)**
+
+---
 
 ## Features
 
-- **Multi-period time views**: View Chrony statistics across day, week, and month periods
-- **HTML report**: HTML page with graphs and raw `chronyc` command outputs
-- **Network monitoring**: with vnStat
-- **Chrony statistics**
-- **Data quality**: Filters aberrant values during Chrony restarts
-- **Lightweight**
-- **Optional GitHub attribution**: It's completely optional by default - feel free to use it however you want, no credit needed! 👍
+| Feature | Description |
+|---|---|
+| Lightweight | Minimal system resources required |
+| Chrony monitoring | Tracks offset, stratum, RMS, frequency, and more |
+| Network monitoring | Traffic stats via vnStat |
+| Multi-period views | Day, week, and month graphs for Chrony stats |
+| HTML report | Visual graphs + raw `chronyc` output in one page |
+
+---
 
 ## Prerequisites
 
-**Install dependencies** (on Debian/Ubuntu-based systems):
+Choose one option :
 
-### **For full functionality (Chrony + Network stats):**
-   ```bash
-   sudo apt update
-   sudo apt install vnstat vnstati rrdtool chrony
-   ```
+### 1. Full monitoring (Chrony + Network):
+```bash
+sudo apt update && sudo apt install vnstat vnstati rrdtool chrony
+```
 
-**Configure vnStat**
-   Ensure `vnstat` is monitoring the correct network interface (e.g., `eth0`):
-   Find your interface here :
-   ```bash
-   vnstat --iflist
-   ```
-   Replace `YOUR-INTERFACE` with your network interface.
-   ```bash
-   sudo vnstat -i YOUR-INTERFACE
-   ``` 
-   **If not eth0** : ⚠️ Change your network interface in [Configuration](#configuration) section !!
+Configure vnStat to monitor your network interface:
+```bash
+vnstat --iflist          # find your interface name
+sudo vnstat -i eth0      # replace eth0 with your interface
+```
+**If not eth0** : ⚠️ Change your network interface in the [Configuration](#configuration) section.
 
-### **For Chrony-only monitoring (set `ENABLE_NETWORK_STATS="no"`):**
-   ```bash
-   sudo apt update
-   sudo apt install rrdtool chrony
-   ```
+### 2. Chrony only 
+```bash
+sudo apt update && sudo apt install rrdtool chrony
+```
+Set `ENABLE_NETWORK_STATS="no"` in config
+
+
+---
 
 ## Installation
 
-1. **Download the script**:
-   ```bash
-   curl -O https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/chrony-network-stats.sh
-   ```
+```bash
+curl -O https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/chrony-network-stats.sh
+sudo chmod +x ./chrony-network-stats.sh
+```
 
-2. **Make the script executable**:
-   ```bash
-   sudo chmod +x ./chrony-network-stats.sh
-   ```
+Then schedule it to run every 5 minutes open the root crontab:
+```bash
+sudo crontab -e
+```
+
+Add this line:
+```
+*/5 * * * * /path/to/chrony-network-stats.sh
+```
+
+---
 
 ## Configuration
 
-   ```bash
-   sudo nano $HOME/chrony-network-stats.sh
-   ```
+Open the script to edit its settings : `nano chrony-network-stats.sh`
 
-The script includes a configuration section at the top of `chrony-network-stats.sh`. Modify these variables as needed:
+The configuration block is at the top of the file:
 
-   ```bash
-   [...]
-   ####################### Configuration ######################
+```bash
+####################### Configuration ######################
 
-   # Enable or disable network statistics generation using vnStat
-   ENABLE_NETWORK_STATS="yes"
-   
-   # ⚠️ IMPORTANT: Replace "eth0" with your actual interface 
-   #    (e.g., ens33, enp0s3, wlan0, ...)
-   INTERFACE="eth0"
+ENABLE_NETWORK_STATS="yes"
 
-   PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
-   OUTPUT_DIR="/var/www/html/chrony-network-stats"
-   HTML_FILENAME="index.html"
+# Replace with your actual interface (e.g., ens33, enp0s3, wlan0)
+INTERFACE="eth0" ## CHANGE HERE ⚠️
 
-   RRD_DIR="/var/lib/chrony-rrd"
-   RRD_FILE="$RRD_DIR/chrony.rrd"
+PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
+OUTPUT_DIR="/var/www/html/chrony-network-stats"
+HTML_FILENAME="index.html"
 
-   ENABLE_LOGGING="yes"
-   LOG_FILE="/var/log/chrony-network-stats.log"
+RRD_DIR="/var/lib/chrony-rrd"
+RRD_FILE="$RRD_DIR/chrony.rrd"
 
-   # Auto-refresh interval in seconds (0 = disabled, e.g., 300 for 5 minutes)
-   AUTO_REFRESH_SECONDS=0
+ENABLE_LOGGING="no"
+LOG_FILE="/var/log/chrony-network-stats.log"
 
-   ## You can display or not the link to the chrony-stats GitHub repository in the HTML page
-   ## It's completely optional by default - feel free to use it however you want, no credit needed! 👍
-   GITHUB_REPO_LINK_SHOW="no"
+# Auto-refresh in seconds (0 = disabled)
+AUTO_REFRESH_SECONDS=0
 
-   ###### Advanced Configuration ######
+# Show a link to this GitHub repo in the HTML page (optional, disabled by default)
+GITHUB_REPO_LINK_SHOW="no"
 
-   ## DNS Lookup Configuration for chronyc commands
-   ## "yes" = Allow DNS reverse lookups (default behavior)
-   ## "no" = Prevent DNS reverse lookups using -n option (faster, reduces network traffic)
-   CHRONY_ALLOW_DNS_LOOKUP="yes"
+###### Advanced Configuration ######
 
-   # Screen preset (page & graphs). Options: default | 2k | 4k
-   # Adjusts main container width, base font size, and graph image resolution
-   DISPLAY_PRESET="default"
+# DNS reverse lookups for chronyc: "no" is faster and reduces network traffic
+CHRONY_ALLOW_DNS_LOOKUP="no"
 
-   TIMEOUT_SECONDS=5
+# Screen preset: default | 2k | 4k
+# Adjusts container width, font size, and graph resolution
+DISPLAY_PRESET="default"
 
-   ## When chrony restarts, it can generate abnormally high statistical values (e.g., 12M packets)
-   ## that distort the graph scale. This parameter filters out values above the threshold,
-   ## creating gaps in the graph instead of displaying misleading spikes.
-   SERVER_STATS_UPPER_LIMIT=100000
-   ##############################################################
+TIMEOUT_SECONDS=5
 
-   # Base graph size (scaled automatically by DISPLAY_PRESET)
-   WIDTH=800
-   HEIGHT=300
-   ##############################################################
-   [...]
-   ```
-   Close with Ctrl+X --> Y --> Enter
+# Filters abnormally high values caused by Chrony restarts (e.g. spikes of 12M packets)
+# Values above this threshold are replaced with gaps in the graph
+SERVER_STATS_UPPER_LIMIT=100000
 
+##############################################################
+WIDTH=800
+HEIGHT=300
+##############################################################
+```
+
+### Display presets
+
+Set `DISPLAY_PRESET` to `2k` or `4k` if the page looks too small on high-resolution screens. Each preset increases the container width, base font size, and graph resolution accordingly.
+
+---
 
 ## Usage
 
-1. **Run the Script**:
-   ```bash
-   sudo $HOME/chrony-network-stats.sh
-   ```
+**Run the script:**
+```bash
+sudo ./chrony-network-stats.sh
+```
 
-2. **View the Output**:
-   - The HTML report is generated at `/var/www/html/chrony-network-stats/index.html`
-   - Serves this file via a web server (e.g., Apache or Nginx)
+**View the report:**
 
-   [See here how to serve via nginx in localhost](nginx.md)
+The HTML file is generated at `/var/www/html/chrony-network-stats/index.html`. Serve it with a web server such as Apache or Nginx. → [Nginx local setup guide](nginx.md)
 
-3. **Monitor Logs**:
-   Check `/var/log/chrony-network-stats.log` for execution details and errors.
+**Check logs** (requires `ENABLE_LOGGING="yes"` in config):
+```bash
+tail -f /var/log/chrony-network-stats.log
+```
 
-### About responsiveness and large screens
-
-Set `DISPLAY_PRESET` to `2k` or `4k` if the main container looks too small on high-resolution displays.
-The preset will:
-- Increase the max width of the main container
-- Increase the base font size
-- Generate larger graph images to keep them sharp on big screens
-
-## Setting up a crontab (Run every 5 minutes)
-
-To run the script every 5 minutes with `sudo` privileges, configure the root crontab :
-
-1. **Add in the root crontab**:
-   ```bash
-   ( sudo crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/chrony-network-stats.sh" ) | sudo crontab -
-   ```
-   This adds the script to the root crontab and schedules it to run every 5 minutes.
-
-2. **Verify Crontab**:
-   Check the crontab entry:
-   ```bash
-   sudo crontab -l
-   ```
-
+---
 
 ## License
 
-This is free and unencumbered software released into the public domain. See the [LICENSE](LICENSE) file for details.
+Free to use however you want without restriction. See [LICENSE](LICENSE) for details.
 
-## Acknowledgments
+## Built with
 
-Built with `vnstat`, `vnstati`, `rrdtool`, and `chrony`.
-- https://humdi.net/vnstat/
-- https://rrdtool.org/rrdtool/index.en.html
-- https://chrony-project.org/
+- [vnStat](https://humdi.net/vnstat/) — network traffic monitor
+- [RRDtool](https://rrdtool.org/rrdtool/index.en.html) — data storage and graph generation
+- [Chrony](https://chrony-project.org/) — NTP implementation
