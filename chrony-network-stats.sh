@@ -150,6 +150,7 @@ collect_chrony_data() {
     CHRONYC_SOURCES=$(get_html sources) || exit 1
     CHRONYC_SOURCESTATS=$(get_html sourcestats) || exit 1
     CHRONYC_SELECTDATA=$(get_html selectdata) || exit 1
+    CHRONYC_SERVERSTATS=$(get_html serverstats) || exit 1
 }
 
 extract_chronyc_values() {
@@ -697,6 +698,9 @@ EOF
 
                 <h3>Command: <code>chronyc${CHRONYC_DISPLAY_OPTS} tracking</code></h3>
                 <pre><code>${CHRONYC_TRACKING_HTML}</code></pre>
+
+                <h3>Command: <code>chronyc${CHRONYC_DISPLAY_OPTS} serverstats</code></h3>
+                <pre><code>${CHRONYC_SERVERSTATS}</code></pre>
             </section>
         </main>
 
