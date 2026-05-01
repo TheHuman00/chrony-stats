@@ -24,7 +24,7 @@ Choose one option :
 
 ### 1. Full monitoring (Chrony + Network):
 ```bash
-sudo apt update && sudo apt install vnstat vnstati rrdtool chrony
+sudo apt update && sudo apt install vnstat vnstati rrdtool
 ```
 
 Configure vnStat to monitor your network interface:
@@ -36,7 +36,7 @@ sudo vnstat -i eth0      # replace eth0 with your interface
 
 ### 2. Chrony only 
 ```bash
-sudo apt update && sudo apt install rrdtool chrony
+sudo apt update && sudo apt install rrdtool
 ```
 Set `ENABLE_NETWORK_STATS="no"` in config
 
