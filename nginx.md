@@ -24,7 +24,7 @@ server {
     listen 127.0.0.1:80;
     server_name localhost;
 
-    alias /var/www/html/chrony-network-stats;
+    root /var/www/html/chrony-network-stats;
     index index.html;
 
     location / {
