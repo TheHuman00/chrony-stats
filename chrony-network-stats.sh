@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e
+# --- Exit on error, unset variables, pipeline errors ------------------------
+set -euo pipefail
 
 ####################### Configuration ######################
 
@@ -160,7 +161,7 @@ extract_chronyc_values() {
     OFFSET=$(extract_val "Last offset" "NF-1")
 
     local systime_line
-    systime_line=$(echo "$RAW_TRACKING" | grep "System time")
+    systime_line=$(echo "$RAW_TRACKING" | grep "System time") || true
     if [[ -n "$systime_line" ]]; then
         local value
         value=$(echo "$systime_line" | awk '{print $4}')
@@ -511,7 +512,8 @@ generate_graphs() {
 
 generate_html() {
     log_message "INFO" "Generating HTML report..."
-    local GENERATED_TIMESTAMP=$(date)
+    local GENERATED_TIMESTAMP
+    GENERATED_TIMESTAMP=$(date)
     
     local CHRONYC_DISPLAY_OPTS=""
     if [[ "$CHRONY_ALLOW_DNS_LOOKUP" == "no" ]]; then
