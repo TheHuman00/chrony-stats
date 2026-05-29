@@ -1,5 +1,4 @@
 #!/bin/bash
-# --- Exit on error, unset variables, pipeline errors ------------------------
 set -euo pipefail
 
 ####################### Configuration ######################
@@ -229,9 +228,6 @@ create_rrd_database() {
 }
 
 migrate_rrd_database() {
-    # Adds data sources introduced after the original RRD was created, without
-    # losing historical data. rrdtool tune accepts DS: definitions just like
-    # create and rewrites the file in place, preserving existing archives.
     [ -f "$RRD_FILE" ] || return 0
 
     local rrd_info
@@ -265,12 +261,6 @@ update_rrd_database() {
         exit 1
     }
 }
-
-###################### Graph definitions ######################
-# Each graph_* function fills the global GA array with the rrdtool graph
-# arguments specific to that graph. The common options (output file, size,
-# time range) are added by generate_graphs(). Using a bash array instead of
-# building a string for eval avoids quoting/word-splitting pitfalls.
 
 graph_chrony_serverstats() {
     local pt="$1"
@@ -478,7 +468,6 @@ generate_graphs() {
         ["year"]="by year"
     )
 
-    # Fixed ordering for periods and graphs (associative arrays are unordered).
     local periods=("day" "week" "month" "year")
     local graph_names=(
         "chrony_serverstats"
