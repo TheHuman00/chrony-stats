@@ -11,9 +11,9 @@ A lightweight Bash script that monitors **Chrony** and **network traffic**, gene
 | Feature | Description |
 |---|---|
 | Lightweight | Minimal system resources required |
-| Chrony monitoring | Tracks offset, stratum, RMS, frequency, and more |
+| Chrony monitoring | Tracks last offset, RMS offset, stratum, frequency, skew, root delay, dispersion, and update interval |
 | Network monitoring | Traffic stats via vnStat |
-| Multi-period views | Day, week, and month graphs for Chrony stats |
+| Multi-period views | Day, week, month, and year graphs for Chrony stats |
 | HTML report | Visual graphs + raw `chronyc` output in one page |
 
 ---
@@ -137,6 +137,19 @@ tail -f /var/log/chrony-network-stats.log
 
 ---
 
+## Upgrading
+
+Upgrading from an older version is seamless: any new data source is added to your existing RRD database automatically on the next run, with no manual step and without losing history.
+
+This version adds a **year** view (next to day, week, and month) and two Chrony metrics:
+
+- **RMS offset** (long-term average offset), drawn next to the last offset on the offset graph.
+- **Update interval** (time between the last two clock updates), on its own graph.
+
+Because these two metrics had no data before the upgrade, their curves start from the upgrade date, leaving a gap before that point on the week, month, and year views. This is expected, not a bug.
+
+---
+
 ## License
 
 Free to use however you want without restriction. See [LICENSE](LICENSE) for details.
@@ -146,3 +159,4 @@ Free to use however you want without restriction. See [LICENSE](LICENSE) for det
 - [vnStat](https://humdi.net/vnstat/) — network traffic monitor
 - [RRDtool](https://rrdtool.org/rrdtool/index.en.html) — data storage and graph generation
 - [Chrony](https://chrony-project.org/) — NTP implementation
+

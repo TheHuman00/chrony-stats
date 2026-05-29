@@ -179,6 +179,8 @@ extract_chronyc_values() {
     DELAY=$(extract_val "Root delay" "NF-1")
     DISPERSION=$(extract_val "Root dispersion" "NF-1")
     STRATUM=$(extract_val "Stratum" "3")
+    RMS_OFFSET=$(extract_val "RMS offset" "NF-1")
+    UPDATE_INTERVAL=$(extract_val "Update interval" "NF-1")
 
     local CHRONYC_OPTS=""
     if [[ "$CHRONY_ALLOW_DNS_LOOKUP" == "no" ]]; then
@@ -215,6 +217,7 @@ create_rrd_database() {
             DS:cmd_drop:COUNTER:600:0:U DS:log_drop:COUNTER:600:0:U DS:nts_ke_acc:COUNTER:600:0:U \
             DS:nts_ke_drop:COUNTER:600:0:U DS:auth_pkts:COUNTER:600:0:U DS:interleaved:COUNTER:600:0:U \
             DS:ts_held:GAUGE:600:0:U \
+            DS:rms_offset:GAUGE:600:U:U DS:update_interval:GAUGE:600:0:U \
             RRA:AVERAGE:0.5:1:576 RRA:AVERAGE:0.5:6:672 RRA:AVERAGE:0.5:24:732 RRA:AVERAGE:0.5:288:730 \
             RRA:MAX:0.5:1:576 RRA:MAX:0.5:6:672 RRA:MAX:0.5:24:732 RRA:MAX:0.5:288:730 \
             RRA:MIN:0.5:1:576 RRA:MIN:0.5:6:672 RRA:MIN:0.5:24:732 RRA:MIN:0.5:288:730 || {
@@ -224,13 +227,237 @@ create_rrd_database() {
     fi
 }
 
+migrate_rrd_database() {
+    # Adds data sources introduced after the original RRD was created, without
+    # losing historical data. rrdtool tune accepts DS: definitions just like
+    # create and rewrites the file in place, preserving existing archives.
+    [ -f "$RRD_FILE" ] || return 0
+
+    local rrd_info
+    rrd_info=$(LC_ALL=C rrdtool info "$RRD_FILE" 2>/dev/null) || {
+        log_message "ERROR" "Failed to read RRD info for migration check"
+        return 1
+    }
+
+    local new_ds=()
+    if ! grep -q 'ds\[rms_offset\]' <<<"$rrd_info"; then
+        new_ds+=("DS:rms_offset:GAUGE:600:U:U")
+    fi
+    if ! grep -q 'ds\[update_interval\]' <<<"$rrd_info"; then
+        new_ds+=("DS:update_interval:GAUGE:600:0:U")
+    fi
+
+    if [ "${#new_ds[@]}" -gt 0 ]; then
+        log_message "INFO" "Migrating RRD: adding data sources -> ${new_ds[*]}"
+        LC_ALL=C rrdtool tune "$RRD_FILE" "${new_ds[@]}" || {
+            log_message "ERROR" "Failed to migrate RRD database (rrdtool tune)"
+            exit 1
+        }
+    fi
+}
+
 update_rrd_database() {
     log_message "INFO" "Updating RRD database..."
-    UPDATE_STRING="N:$OFFSET:$FREQ:$RESID_FREQ:$SKEW:$DELAY:$DISPERSION:$STRATUM:$SYSTIME:$PKTS_RECV:$PKTS_DROP:$CMD_RECV:$CMD_DROP:$LOG_DROP:$NTS_KE_ACC:$NTS_KE_DROP:$AUTH_PKTS:$INTERLEAVED:$TS_HELD"
+    UPDATE_STRING="N:$OFFSET:$FREQ:$RESID_FREQ:$SKEW:$DELAY:$DISPERSION:$STRATUM:$SYSTIME:$PKTS_RECV:$PKTS_DROP:$CMD_RECV:$CMD_DROP:$LOG_DROP:$NTS_KE_ACC:$NTS_KE_DROP:$AUTH_PKTS:$INTERLEAVED:$TS_HELD:$RMS_OFFSET:$UPDATE_INTERVAL"
     LC_ALL=C rrdtool update "$RRD_FILE" "$UPDATE_STRING" || {
         log_message "ERROR" "Failed to update RRD database"
         exit 1
     }
+}
+
+###################### Graph definitions ######################
+# Each graph_* function fills the global GA array with the rrdtool graph
+# arguments specific to that graph. The common options (output file, size,
+# time range) are added by generate_graphs(). Using a bash array instead of
+# building a string for eval avoids quoting/word-splitting pitfalls.
+
+graph_chrony_serverstats() {
+    local pt="$1"
+    GA=(
+        --title "Chrony Server Statistics - $pt"
+        --vertical-label "Packets/second"
+        --lower-limit 0 --rigid --units-exponent 0
+        "DEF:pkts_recv_raw=$RRD_FILE:pkts_recv:AVERAGE"
+        "DEF:pkts_drop_raw=$RRD_FILE:pkts_drop:AVERAGE"
+        "DEF:cmd_recv_raw=$RRD_FILE:cmd_recv:AVERAGE"
+        "DEF:cmd_drop_raw=$RRD_FILE:cmd_drop:AVERAGE"
+        "DEF:log_drop_raw=$RRD_FILE:log_drop:AVERAGE"
+        "DEF:nts_ke_acc_raw=$RRD_FILE:nts_ke_acc:AVERAGE"
+        "DEF:nts_ke_drop_raw=$RRD_FILE:nts_ke_drop:AVERAGE"
+        "DEF:auth_pkts_raw=$RRD_FILE:auth_pkts:AVERAGE"
+        "CDEF:pkts_recv=pkts_recv_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,pkts_recv_raw,IF"
+        "CDEF:pkts_drop=pkts_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,pkts_drop_raw,IF"
+        "CDEF:cmd_recv=cmd_recv_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,cmd_recv_raw,IF"
+        "CDEF:cmd_drop=cmd_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,cmd_drop_raw,IF"
+        "CDEF:log_drop=log_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,log_drop_raw,IF"
+        "CDEF:nts_ke_acc=nts_ke_acc_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,nts_ke_acc_raw,IF"
+        "CDEF:nts_ke_drop=nts_ke_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,nts_ke_drop_raw,IF"
+        "CDEF:auth_pkts=auth_pkts_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,auth_pkts_raw,IF"
+        "COMMENT: \l"
+        "AREA:pkts_recv#C4FFC4:Packets received            "
+        "LINE1:pkts_recv#00E000:"
+        "GPRINT:pkts_recv:LAST:Cur\: %6.2lf%s"
+        "GPRINT:pkts_recv:MIN:Min\: %6.2lf%s"
+        "GPRINT:pkts_recv:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:pkts_recv:MAX:Max\: %6.2lf%s\l"
+        "LINE1:pkts_drop#FF8C00:Packets dropped             "
+        "GPRINT:pkts_drop:LAST:Cur\: %6.2lf%s"
+        "GPRINT:pkts_drop:MIN:Min\: %6.2lf%s"
+        "GPRINT:pkts_drop:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:pkts_drop:MAX:Max\: %6.2lf%s\l"
+        "LINE1:cmd_recv#4169E1:Command packets received    "
+        "GPRINT:cmd_recv:LAST:Cur\: %6.2lf%s"
+        "GPRINT:cmd_recv:MIN:Min\: %6.2lf%s"
+        "GPRINT:cmd_recv:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:cmd_recv:MAX:Max\: %6.2lf%s\l"
+        "LINE1:cmd_drop#FFD700:Command packets dropped     "
+        "GPRINT:cmd_drop:LAST:Cur\: %6.2lf%s"
+        "GPRINT:cmd_drop:MIN:Min\: %6.2lf%s"
+        "GPRINT:cmd_drop:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:cmd_drop:MAX:Max\: %6.2lf%s\l"
+        "LINE1:log_drop#9400D3:Client log records dropped  "
+        "GPRINT:log_drop:LAST:Cur\: %6.2lf%s"
+        "GPRINT:log_drop:MIN:Min\: %6.2lf%s"
+        "GPRINT:log_drop:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:log_drop:MAX:Max\: %6.2lf%s\l"
+        "LINE1:nts_ke_acc#8A2BE2:NTS-KE connections accepted "
+        "GPRINT:nts_ke_acc:LAST:Cur\: %6.2lf%s"
+        "GPRINT:nts_ke_acc:MIN:Min\: %6.2lf%s"
+        "GPRINT:nts_ke_acc:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:nts_ke_acc:MAX:Max\: %6.2lf%s\l"
+        "LINE1:nts_ke_drop#9370DB:NTS-KE connections dropped  "
+        "GPRINT:nts_ke_drop:LAST:Cur\: %6.2lf%s"
+        "GPRINT:nts_ke_drop:MIN:Min\: %6.2lf%s"
+        "GPRINT:nts_ke_drop:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:nts_ke_drop:MAX:Max\: %6.2lf%s\l"
+        "LINE1:auth_pkts#FF0000:Authenticated NTP packets   "
+        "GPRINT:auth_pkts:LAST:Cur\: %6.2lf%s"
+        "GPRINT:auth_pkts:MIN:Min\: %6.2lf%s"
+        "GPRINT:auth_pkts:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:auth_pkts:MAX:Max\: %6.2lf%s\l"
+    )
+}
+
+graph_chrony_tracking() {
+    local pt="$1"
+    GA=(
+        --title "Chrony Dispersion + Stratum - $pt"
+        --vertical-label "seconds"
+        --right-axis "1000:0" --right-axis-label "Stratum"
+        "DEF:stratum=$RRD_FILE:stratum:AVERAGE"
+        "DEF:dispersion=$RRD_FILE:dispersion:AVERAGE"
+        "CDEF:disp_scaled=dispersion,1,*"
+        "CDEF:stratum_scaled=stratum,0.001,*"
+        "COMMENT: \l"
+        "LINE1:stratum_scaled#00ff00:Stratum            (right axis)               "
+        "GPRINT:stratum:LAST:  Cur\: %6.2lf%s"
+        "GPRINT:stratum:MIN:Min\: %6.2lf%s"
+        "GPRINT:stratum:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:stratum:MAX:Max\: %6.2lf%s\l"
+        "LINE1:disp_scaled#9400D3:Root dispersion    [Root dispersion]          "
+        "GPRINT:disp_scaled:LAST:  Cur\: %6.2lf%s"
+        "GPRINT:disp_scaled:MIN:Min\: %6.2lf%s"
+        "GPRINT:disp_scaled:AVERAGE:Avg\: %6.2lf%s"
+        "GPRINT:disp_scaled:MAX:Max\: %6.2lf%s\l"
+    )
+}
+
+graph_chrony_offset() {
+    local pt="$1"
+    GA=(
+        --title "Chrony System Time Offset - $pt"
+        --vertical-label "seconds"
+        "DEF:offset=$RRD_FILE:offset:AVERAGE"
+        "DEF:systime=$RRD_FILE:systime:AVERAGE"
+        "DEF:rms=$RRD_FILE:rms_offset:AVERAGE"
+        "CDEF:systime_scaled=systime,1,*"
+        "CDEF:offset_ms=offset,1,*"
+        "CDEF:rms_scaled=rms,1,*"
+        "LINE2:offset_ms#00ff00:Actual Offset from NTP Source [Last Offset] "
+        "GPRINT:offset_ms:LAST:  Cur\: %7.2lf%s"
+        "GPRINT:offset_ms:MIN:Min\: %7.2lf%s"
+        "GPRINT:offset_ms:AVERAGE:Avg\: %7.2lf%s"
+        "GPRINT:offset_ms:MAX:Max\: %7.2lf%s\l"
+        "LINE1:systime_scaled#4169E1:System Clock Adjustment       [System Time] "
+        "GPRINT:systime_scaled:LAST:  Cur\: %7.2lf%s"
+        "GPRINT:systime_scaled:MIN:Min\: %7.2lf%s"
+        "GPRINT:systime_scaled:AVERAGE:Avg\: %7.2lf%s"
+        "GPRINT:systime_scaled:MAX:Max\: %7.2lf%s\l"
+        "LINE1:rms_scaled#FF8C00:Long-term Average Offset      [RMS offset]  "
+        "GPRINT:rms_scaled:LAST:  Cur\: %7.2lf%s"
+        "GPRINT:rms_scaled:MIN:Min\: %7.2lf%s"
+        "GPRINT:rms_scaled:AVERAGE:Avg\: %7.2lf%s"
+        "GPRINT:rms_scaled:MAX:Max\: %7.2lf%s\l"
+    )
+}
+
+graph_chrony_delay() {
+    local pt="$1"
+    GA=(
+        --title "Chrony Root Delay - $pt"
+        --vertical-label "seconds"
+        "DEF:delay=$RRD_FILE:delay:AVERAGE"
+        "CDEF:delay_ms=delay,1,*"
+        "LINE2:delay_ms#00ff00:Network Delay to Root Source   [Root Delay]  "
+        "GPRINT:delay_ms:LAST:Cur\: %7.2lf%s"
+        "GPRINT:delay_ms:MIN:Min\: %7.2lf%s"
+        "GPRINT:delay_ms:AVERAGE:Avg\: %7.2lf%s"
+        "GPRINT:delay_ms:MAX:Max\: %7.2lf%s\l"
+    )
+}
+
+graph_chrony_frequency() {
+    local pt="$1"
+    GA=(
+        --title "Chrony Clock Frequency Error - $pt"
+        --vertical-label "ppm"
+        "DEF:freq=$RRD_FILE:frequency:AVERAGE"
+        "DEF:resid_freq=$RRD_FILE:resid_freq:AVERAGE"
+        "CDEF:resfreq_scaled=resid_freq,100,*"
+        "CDEF:freq_scaled=freq,1,*"
+        "LINE2:freq_scaled#00ff00:Natural Clock Drift      [Frequency]         "
+        "GPRINT:freq_scaled:LAST:Cur\: %7.2lf%s"
+        "GPRINT:freq_scaled:MIN:Min\: %7.2lf%s"
+        "GPRINT:freq_scaled:AVERAGE:Avg\: %7.2lf%s"
+        "GPRINT:freq_scaled:MAX:Max\: %7.2lf%s\n"
+        "LINE1:resfreq_scaled#4169E1:Residual Drift (x100)    [Residual freq]     "
+        "GPRINT:resfreq_scaled:LAST:Cur\: %7.2lf%s"
+        "GPRINT:resfreq_scaled:MIN:Min\: %7.2lf%s"
+        "GPRINT:resfreq_scaled:AVERAGE:Avg\: %7.2lf%s"
+        "GPRINT:resfreq_scaled:MAX:Max\: %7.2lf%s\l"
+    )
+}
+
+graph_chrony_drift() {
+    local pt="$1"
+    GA=(
+        --title "Chrony Drift Margin Error - $pt"
+        --vertical-label "ppm"
+        --units-exponent 0
+        "DEF:skew_raw=$RRD_FILE:skew:AVERAGE"
+        "CDEF:skew_scaled=skew_raw,100,*"
+        "COMMENT: \l"
+        "LINE1:skew_scaled#00ff00:Estimate Drift Error Margin (x100)  [Skew]   "
+        "GPRINT:skew_scaled:LAST:Cur\: %7.2lf"
+        "GPRINT:skew_scaled:MIN:Min\: %7.2lf"
+        "GPRINT:skew_scaled:AVERAGE:Avg\: %7.2lf"
+        "GPRINT:skew_scaled:MAX:Max\: %7.2lf\l"
+    )
+}
+
+graph_chrony_update_interval() {
+    local pt="$1"
+    GA=(
+        --title "Chrony Update Interval - $pt"
+        --vertical-label "seconds"
+        --lower-limit 0 --rigid
+        "DEF:upd=$RRD_FILE:update_interval:AVERAGE"
+        "LINE2:upd#00ff00:Interval Between Clock Updates  [Update interval] "
+        "GPRINT:upd:LAST:Cur\: %7.2lf%s"
+        "GPRINT:upd:MIN:Min\: %7.2lf%s"
+        "GPRINT:upd:AVERAGE:Avg\: %7.2lf%s"
+        "GPRINT:upd:MAX:Max\: %7.2lf%s\l"
+    )
 }
 
 generate_graphs() {
@@ -238,155 +465,46 @@ generate_graphs() {
 
     declare -A time_periods=(
         ["day"]="end-1d"
-        ["week"]="end-1w" 
+        ["week"]="end-1w"
         ["month"]="end-1m"
+        ["year"]="end-1y"
     )
-    
+
     declare -A period_titles=(
         ["day"]="by day"
         ["week"]="by week"
         ["month"]="by month"
-    )
-    
-    declare -A graphs=(
-        ["chrony_serverstats"]="--title 'Chrony Server Statistics - PERIOD_TITLE' --vertical-label 'Packets/second' \
-            --lower-limit 0 --rigid --units-exponent 0 \
-            DEF:pkts_recv_raw='$RRD_FILE':pkts_recv:AVERAGE \
-            DEF:pkts_drop_raw='$RRD_FILE':pkts_drop:AVERAGE \
-            DEF:cmd_recv_raw='$RRD_FILE':cmd_recv:AVERAGE \
-            DEF:cmd_drop_raw='$RRD_FILE':cmd_drop:AVERAGE \
-            DEF:log_drop_raw='$RRD_FILE':log_drop:AVERAGE \
-            DEF:nts_ke_acc_raw='$RRD_FILE':nts_ke_acc:AVERAGE \
-            DEF:nts_ke_drop_raw='$RRD_FILE':nts_ke_drop:AVERAGE \
-            DEF:auth_pkts_raw='$RRD_FILE':auth_pkts:AVERAGE \
-            CDEF:pkts_recv=pkts_recv_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,pkts_recv_raw,IF \
-            CDEF:pkts_drop=pkts_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,pkts_drop_raw,IF \
-            CDEF:cmd_recv=cmd_recv_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,cmd_recv_raw,IF \
-            CDEF:cmd_drop=cmd_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,cmd_drop_raw,IF \
-            CDEF:log_drop=log_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,log_drop_raw,IF \
-            CDEF:nts_ke_acc=nts_ke_acc_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,nts_ke_acc_raw,IF \
-            CDEF:nts_ke_drop=nts_ke_drop_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,nts_ke_drop_raw,IF \
-            CDEF:auth_pkts=auth_pkts_raw,$SERVER_STATS_UPPER_LIMIT,GT,UNKN,auth_pkts_raw,IF \
-            'COMMENT: \l' \
-            'AREA:pkts_recv#C4FFC4:Packets received            ' \
-            'LINE1:pkts_recv#00E000:' \
-            'GPRINT:pkts_recv:LAST:Cur\: %6.2lf%s' \
-            'GPRINT:pkts_recv:MIN:Min\: %6.2lf%s' \
-            'GPRINT:pkts_recv:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:pkts_recv:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:pkts_drop#FF8C00:Packets dropped             ' \
-            'GPRINT:pkts_drop:LAST:Cur\: %6.2lf%s' \
-            'GPRINT:pkts_drop:MIN:Min\: %6.2lf%s' \
-            'GPRINT:pkts_drop:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:pkts_drop:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:cmd_recv#4169E1:Command packets received    ' \
-            'GPRINT:cmd_recv:LAST:Cur\: %6.2lf%s' \
-            'GPRINT:cmd_recv:MIN:Min\: %6.2lf%s' \
-            'GPRINT:cmd_recv:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:cmd_recv:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:cmd_drop#FFD700:Command packets dropped     ' \
-            'GPRINT:cmd_drop:LAST:Cur\: %6.2lf%s' \
-            'GPRINT:cmd_drop:MIN:Min\: %6.2lf%s' \
-            'GPRINT:cmd_drop:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:cmd_drop:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:log_drop#9400D3:Client log records dropped  ' \
-            'GPRINT:log_drop:LAST:Cur\: %6.2lf%s' \
-            'GPRINT:log_drop:MIN:Min\: %6.2lf%s' \
-            'GPRINT:log_drop:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:log_drop:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:nts_ke_acc#8A2BE2:NTS-KE connections accepted ' \
-            'GPRINT:nts_ke_acc:LAST:Cur\: %6.2lf%s' \
-            'GPRINT:nts_ke_acc:MIN:Min\: %6.2lf%s' \
-            'GPRINT:nts_ke_acc:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:nts_ke_acc:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:nts_ke_drop#9370DB:NTS-KE connections dropped  ' \
-            'GPRINT:nts_ke_drop:LAST:Cur\: %6.2lf%s' \
-            'GPRINT:nts_ke_drop:MIN:Min\: %6.2lf%s' \
-            'GPRINT:nts_ke_drop:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:nts_ke_drop:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:auth_pkts#FF0000:Authenticated NTP packets   ' \
-            'GPRINT:auth_pkts:LAST:Cur\: %6.2lf%s' \
-            'GPRINT:auth_pkts:MIN:Min\: %6.2lf%s' \
-            'GPRINT:auth_pkts:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:auth_pkts:MAX:Max\: %6.2lf%s\l'"
-        ["chrony_tracking"]="--title 'Chrony Dispersion + Stratum - PERIOD_TITLE' --vertical-label 'seconds' \
-            --right-axis 1000:0 --right-axis-label 'Stratum' \
-            DEF:stratum='$RRD_FILE':stratum:AVERAGE \
-            DEF:dispersion='$RRD_FILE':dispersion:AVERAGE \
-            CDEF:disp_scaled=dispersion,1,* \
-            CDEF:stratum_scaled=stratum,0.001,* \
-            'COMMENT: \l' \
-            'LINE1:stratum_scaled#00ff00:Stratum            (right axis)               ' \
-            'GPRINT:stratum:LAST:  Cur\: %6.2lf%s' \
-            'GPRINT:stratum:MIN:Min\: %6.2lf%s' \
-            'GPRINT:stratum:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:stratum:MAX:Max\: %6.2lf%s\l' \
-            'LINE1:disp_scaled#9400D3:Root dispersion    [Root dispersion]          ' \
-            'GPRINT:disp_scaled:LAST:  Cur\: %6.2lf%s' \
-            'GPRINT:disp_scaled:MIN:Min\: %6.2lf%s' \
-            'GPRINT:disp_scaled:AVERAGE:Avg\: %6.2lf%s' \
-            'GPRINT:disp_scaled:MAX:Max\: %6.2lf%s\l'"
-        ["chrony_offset"]="--title 'Chrony System Time Offset - PERIOD_TITLE' --vertical-label 'seconds' \
-            DEF:offset='$RRD_FILE':offset:AVERAGE \
-	        DEF:systime='$RRD_FILE':systime:AVERAGE \
-	        CDEF:systime_scaled=systime,1,* \
-	        CDEF:offset_ms=offset,1,* \
-            'LINE2:offset_ms#00ff00:Actual Offset from NTP Source [Last Offset] ' \
-            'GPRINT:offset_ms:LAST:  Cur\: %7.2lf%s' \
-	        'GPRINT:offset_ms:MIN:Min\: %7.2lf%s' \
-            'GPRINT:offset_ms:AVERAGE:Avg\: %7.2lf%s' \
-            'GPRINT:offset_ms:MAX:Max\: %7.2lf%s\l' \
-            'LINE1:systime_scaled#4169E1:System Clock Adjustment       [System Time] ' \
-            'GPRINT:systime_scaled:LAST:  Cur\: %7.2lf%s' \
-            'GPRINT:systime_scaled:MIN:Min\: %7.2lf%s' \
-            'GPRINT:systime_scaled:AVERAGE:Avg\: %7.2lf%s' \
-            'GPRINT:systime_scaled:MAX:Max\: %7.2lf%s\l'"
-        ["chrony_delay"]="--title 'Chrony Root Delay - PERIOD_TITLE' --vertical-label 'seconds' \
-            DEF:delay='$RRD_FILE':delay:AVERAGE \
-            CDEF:delay_ms=delay,1,* \
-            LINE2:delay_ms#00ff00:'Network Delay to Root Source   [Root Delay]  ' \
-            'GPRINT:delay_ms:LAST:Cur\: %7.2lf%s' \
-            'GPRINT:delay_ms:MIN:Min\: %7.2lf%s' \
-            'GPRINT:delay_ms:AVERAGE:Avg\: %7.2lf%s' \
-            'GPRINT:delay_ms:MAX:Max\: %7.2lf%s\l'"
-        ["chrony_frequency"]="--title 'Chrony Clock Frequency Error - PERIOD_TITLE' --vertical-label 'ppm'\
-            DEF:freq='$RRD_FILE':frequency:AVERAGE \
-            DEF:resid_freq='$RRD_FILE':resid_freq:AVERAGE \
-            CDEF:resfreq_scaled=resid_freq,100,* \
-            CDEF:freq_scaled=freq,1,* \
-            'LINE2:freq_scaled#00ff00:Natural Clock Drift      [Frequency]         ' \
-            'GPRINT:freq_scaled:LAST:Cur\: %7.2lf%s' \
-            'GPRINT:freq_scaled:MIN:Min\: %7.2lf%s' \
-            'GPRINT:freq_scaled:AVERAGE:Avg\: %7.2lf%s' \
-            'GPRINT:freq_scaled:MAX:Max\: %7.2lf%s\n' \
-            'LINE1:resfreq_scaled#4169E1:Residual Drift (x100)    [Residual freq]     ' \
-            'GPRINT:resfreq_scaled:LAST:Cur\: %7.2lf%s' \
-            'GPRINT:resfreq_scaled:MIN:Min\: %7.2lf%s' \
-            'GPRINT:resfreq_scaled:AVERAGE:Avg\: %7.2lf%s' \
-            'GPRINT:resfreq_scaled:MAX:Max\: %7.2lf%s\l'"
-	["chrony_drift"]="--title 'Chrony Drift Margin Error - PERIOD_TITLE' --vertical-label 'ppm' \
-            --units-exponent 0 \
-            DEF:skew_raw='$RRD_FILE':skew:AVERAGE \
-	        CDEF:skew_scaled=skew_raw,100,* \
-            'COMMENT: \l' \
-            'LINE1:skew_scaled#00ff00:Estimate Drift Error Margin (x100)  [Skew]   ' \
-            'GPRINT:skew_scaled:LAST:Cur\: %7.2lf' \
-            'GPRINT:skew_scaled:MIN:Min\: %7.2lf' \
-            'GPRINT:skew_scaled:AVERAGE:Avg\: %7.2lf' \
-            'GPRINT:skew_scaled:MAX:Max\: %7.2lf\l'"
+        ["year"]="by year"
     )
 
-    for period in "${!time_periods[@]}"; do
-        for graph in "${!graphs[@]}"; do
-            local graph_title="${graphs[$graph]//PERIOD_TITLE/${period_titles[$period]}}"
-            local output_file="$OUTPUT_DIR/img/${graph}_${period}.png"
-            local time_range="${time_periods[$period]}"
-            
-            local cmd="LC_ALL=C rrdtool graph '$output_file' --width '$WIDTH' --height '$HEIGHT' --start $time_range --end now-180s $graph_title"
-            eval "$cmd" || {
-                log_message "ERROR" "Failed to generate graph: ${graph}_${period}"
-                exit 1
-            }
+    # Fixed ordering for periods and graphs (associative arrays are unordered).
+    local periods=("day" "week" "month" "year")
+    local graph_names=(
+        "chrony_serverstats"
+        "chrony_offset"
+        "chrony_tracking"
+        "chrony_delay"
+        "chrony_frequency"
+        "chrony_drift"
+        "chrony_update_interval"
+    )
+
+    local period graph output_file
+    local GA=()
+
+    for period in "${periods[@]}"; do
+        for graph in "${graph_names[@]}"; do
+            GA=()
+            "graph_${graph}" "${period_titles[$period]}"
+            output_file="$OUTPUT_DIR/img/${graph}_${period}.png"
+
+            LC_ALL=C rrdtool graph "$output_file" \
+                --width "$WIDTH" --height "$HEIGHT" \
+                --start "${time_periods[$period]}" --end now-180s \
+                "${GA[@]}" >/dev/null || {
+                    log_message "ERROR" "Failed to generate graph: ${graph}_${period}"
+                    exit 1
+                }
         done
     done
 }
@@ -579,80 +697,38 @@ $CSS_CUSTOM_ROOT
             <section id="chrony-graphs">
                 <h2>Chrony Graphs <a target="_blank" href="https://chrony-project.org/doc/latest/chronyc.html#:~:text=System%20clock-,tracking,-The%20tracking%20command">[Data Legend]</a></h2>
                 
-                <div class="tabs">
-                    <div class="tab active" onclick="showTab('day')">Day</div>
-                    <div class="tab" onclick="showTab('week')">Week</div>
-                    <div class="tab" onclick="showTab('month')">Month</div>
-                </div>
-                
-                <div id="day-content" class="tab-content active">
-                    <div class="graph-grid">
-                        <figure>
-                            <img src="img/chrony_serverstats_day.png" alt="Chrony server statistics graph - day">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_offset_day.png" alt="Chrony system clock offset graph - day">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_tracking_day.png" alt="Chrony system clock tracking graph - day">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_delay_day.png" alt="Chrony sync delay graph - day">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_frequency_day.png" alt="Chrony clock frequency graph - day">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_drift_day.png" alt="Chrony clock frequency drift graph - day">
-                        </figure>
-                    </div>
-                </div>
-                
-                <div id="week-content" class="tab-content">
-                    <div class="graph-grid">
-                        <figure>
-                            <img src="img/chrony_serverstats_week.png" alt="Chrony server statistics graph - week">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_offset_week.png" alt="Chrony system clock offset graph - week">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_tracking_week.png" alt="Chrony system clock tracking graph - week">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_delay_week.png" alt="Chrony sync delay graph - week">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_frequency_week.png" alt="Chrony clock frequency graph - week">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_drift_week.png" alt="Chrony clock frequency drift graph - week">
-                        </figure>
-                    </div>
-                </div>
-                
-                <div id="month-content" class="tab-content">
-                    <div class="graph-grid">
-                        <figure>
-                            <img src="img/chrony_serverstats_month.png" alt="Chrony server statistics graph - month">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_offset_month.png" alt="Chrony system clock offset graph - month">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_tracking_month.png" alt="Chrony system clock tracking graph - month">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_delay_month.png" alt="Chrony sync delay graph - month">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_frequency_month.png" alt="Chrony clock frequency graph - month">
-                        </figure>
-                        <figure>
-                            <img src="img/chrony_drift_month.png" alt="Chrony clock frequency drift graph - month">
-                        </figure>
-                    </div>
-                </div>
+EOF
+
+    # --- Dynamic generation of period tabs and graph grids ---
+    # Periods and graphs are enumerated here so adding one stays a single-line
+    # change and every tab automatically gets every graph.
+    {
+        local _first=1 _p _cls _g
+        printf '                <div class="tabs">\n'
+        for _p in day week month year; do
+            _cls="tab"; [ "$_first" -eq 1 ] && _cls="tab active"; _first=0
+            printf '                    <div class="%s" onclick="showTab('\''%s'\'')">%s</div>\n' \
+                "$_cls" "$_p" "${_p^}"
+        done
+        printf '                </div>\n'
+
+        _first=1
+        for _p in day week month year; do
+            _cls="tab-content"; [ "$_first" -eq 1 ] && _cls="tab-content active"; _first=0
+            printf '                <div id="%s-content" class="%s">\n' "$_p" "$_cls"
+            printf '                    <div class="graph-grid">\n'
+            for _g in serverstats offset tracking delay frequency drift update_interval; do
+                printf '                        <figure>\n'
+                printf '                            <img src="img/chrony_%s_%s.png" alt="Chrony %s graph - %s">\n' \
+                    "$_g" "$_p" "$_g" "$_p"
+                printf '                        </figure>\n'
+            done
+            printf '                    </div>\n'
+            printf '                </div>\n'
+        done
+    } >>"$OUTPUT_DIR/$HTML_FILENAME"
+
+    cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
             </section>
 EOF
 
@@ -778,6 +854,7 @@ main() {
     collect_chrony_data
     extract_chronyc_values
     create_rrd_database
+    migrate_rrd_database
     update_rrd_database
     generate_graphs
     generate_html
