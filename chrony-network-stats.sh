@@ -1,12 +1,13 @@
 #!/bin/bash
+# --- Exit on error, unset variables, pipeline errors ------------------------
 set -euo pipefail
 
 ####################### Configuration ######################
 
 ENABLE_NETWORK_STATS="yes" ## Enable or disable network statistics generation using vnStat
-INTERFACE="eth0" ## Network interface to monitor (e.g., eth0, wlan0)
+INTERFACES=("wlan0" "eth0") ## Network interfaces to monitor (bash array). Order = display order in HTML.
 
-PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
+PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACES[*]}"
 OUTPUT_DIR="/var/www/html/chrony-network-stats" ## Output directory for HTML and images
 HTML_FILENAME="index.html" ## Output HTML file name
 
@@ -30,15 +31,15 @@ SERVER_STATS_UPPER_LIMIT=100000 ## When chrony restarts, it generate abnormally 
 ##############################################################
 
 WIDTH=800   ## These graph sizes are changing with DISPLAY_PRESET
-HEIGHT=300  ## 
+HEIGHT=300  ##
 
 log_message() {
     local level="$1"
     local message="$2"
     if [[ "$ENABLE_LOGGING" == "yes" ]]; then
-    	echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" >> "$LOG_FILE"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" >> "$LOG_FILE"
     fi
-    	echo "[$level] $message"
+        echo "[$level] $message"
 }
 
 configure_display_preset() {
@@ -82,12 +83,12 @@ validate_numeric() {
 }
 
 check_commands() {
-    local commands=("rrdtool" "chronyc" "sudo" "timeout")
-    
+    local commands=("rrdtool" "chronyc" "timeout")
+
     if [[ "$ENABLE_NETWORK_STATS" == "yes" ]]; then
         commands+=("vnstati")
     fi
-    
+
     for cmd in "${commands[@]}"; do
         if ! command -v "$cmd" &>/dev/null; then
             log_message "ERROR" "Command '$cmd' not found in PATH."
@@ -115,34 +116,36 @@ generate_vnstat_images() {
         log_message "INFO" "Network stats disabled, skipping vnStat image generation..."
         return 0
     fi
-    
-    log_message "INFO" "Generating vnStat images for interface '$INTERFACE'..."
+
     local modes=("s" "d" "t" "h" "m" "y")
-    for mode in "${modes[@]}"; do
-        vnstati -"$mode" -i "$INTERFACE" -o "$OUTPUT_DIR/img/vnstat_${mode}.png" || {
-            log_message "ERROR" "Failed to generate vnstat image for mode $mode Check configuaration section : INTERFACE=\"here\""
-            exit 1
-        }
+    for iface in "${INTERFACES[@]}"; do
+        log_message "INFO" "Generating vnStat images for interface '$iface'..."
+        for mode in "${modes[@]}"; do
+            vnstati -"$mode" -i "$iface" -o "$OUTPUT_DIR/img/vnstat_${iface}_${mode}.png" || {
+                log_message "ERROR" "Failed to generate vnstat image for interface $iface mode $mode. Check INTERFACES=() configuration and 'vnstat --iflist'."
+                exit 1
+            }
+        done
     done
 }
 
 collect_chrony_data() {
     log_message "INFO" "Collecting Chrony data..."
-    
+
     local CHRONYC_OPTS=""
     if [[ "$CHRONY_ALLOW_DNS_LOOKUP" == "no" ]]; then
         CHRONYC_OPTS="-n"
         log_message "INFO" "Using chronyc -n option to prevent DNS lookups"
     fi
-    
+
     get_html() {
-        timeout "$TIMEOUT_SECONDS"s sudo chronyc $CHRONYC_OPTS "$1" -v 2>&1 | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g' || {
+        timeout "$TIMEOUT_SECONDS"s chronyc $CHRONYC_OPTS "$1" -v 2>&1 | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g' || {
             log_message "ERROR" "Failed to collect chronyc $1 data"
             return 1
         }
     }
 
-    RAW_TRACKING=$(timeout "$TIMEOUT_SECONDS"s sudo chronyc $CHRONYC_OPTS tracking) || {
+    RAW_TRACKING=$(timeout "$TIMEOUT_SECONDS"s chronyc $CHRONYC_OPTS tracking) || {
         log_message "ERROR" "Failed to collect chronyc tracking data"
         exit 1
     }
@@ -180,14 +183,13 @@ extract_chronyc_values() {
     DISPERSION=$(extract_val "Root dispersion" "NF-1")
     STRATUM=$(extract_val "Stratum" "3")
     RMS_OFFSET=$(extract_val "RMS offset" "NF-1")
-    UPDATE_INTERVAL=$(extract_val "Update interval" "NF-1")
 
     local CHRONYC_OPTS=""
     if [[ "$CHRONY_ALLOW_DNS_LOOKUP" == "no" ]]; then
         CHRONYC_OPTS="-n"
     fi
 
-    RAW_STATS=$(LC_ALL=C sudo chronyc $CHRONYC_OPTS serverstats) || {
+    RAW_STATS=$(LC_ALL=C chronyc $CHRONYC_OPTS serverstats) || {
         log_message "ERROR" "Failed to collect chronyc serverstats"
         exit 1
     }
@@ -212,12 +214,12 @@ create_rrd_database() {
         LC_ALL=C rrdtool create "$RRD_FILE" --step 300 \
             DS:offset:GAUGE:600:U:U DS:frequency:GAUGE:600:U:U DS:resid_freq:GAUGE:600:U:U DS:skew:GAUGE:600:U:U \
             DS:delay:GAUGE:600:U:U DS:dispersion:GAUGE:600:U:U DS:stratum:GAUGE:600:0:16 \
-	    DS:systime:GAUGE:600:U:U \
+            DS:systime:GAUGE:600:U:U \
             DS:pkts_recv:COUNTER:600:0:U DS:pkts_drop:COUNTER:600:0:U DS:cmd_recv:COUNTER:600:0:U \
             DS:cmd_drop:COUNTER:600:0:U DS:log_drop:COUNTER:600:0:U DS:nts_ke_acc:COUNTER:600:0:U \
             DS:nts_ke_drop:COUNTER:600:0:U DS:auth_pkts:COUNTER:600:0:U DS:interleaved:COUNTER:600:0:U \
             DS:ts_held:GAUGE:600:0:U \
-            DS:rms_offset:GAUGE:600:U:U DS:update_interval:GAUGE:600:0:U \
+            DS:rms_offset:GAUGE:600:U:U \
             RRA:AVERAGE:0.5:1:576 RRA:AVERAGE:0.5:6:672 RRA:AVERAGE:0.5:24:732 RRA:AVERAGE:0.5:288:730 \
             RRA:MAX:0.5:1:576 RRA:MAX:0.5:6:672 RRA:MAX:0.5:24:732 RRA:MAX:0.5:288:730 \
             RRA:MIN:0.5:1:576 RRA:MIN:0.5:6:672 RRA:MIN:0.5:24:732 RRA:MIN:0.5:288:730 || {
@@ -228,6 +230,9 @@ create_rrd_database() {
 }
 
 migrate_rrd_database() {
+    # Reconcile the schema of an existing RRD with the current data sources,
+    # without losing historical data. rrdtool tune accepts DS: (add) and DEL:
+    # (remove) definitions and rewrites the file in place, preserving archives.
     [ -f "$RRD_FILE" ] || return 0
 
     local rrd_info
@@ -236,18 +241,31 @@ migrate_rrd_database() {
         return 1
     }
 
-    local new_ds=()
+    # Data sources to add (older databases predating rms_offset).
+    local add_ds=()
     if ! grep -q 'ds\[rms_offset\]' <<<"$rrd_info"; then
-        new_ds+=("DS:rms_offset:GAUGE:600:U:U")
-    fi
-    if ! grep -q 'ds\[update_interval\]' <<<"$rrd_info"; then
-        new_ds+=("DS:update_interval:GAUGE:600:0:U")
+        add_ds+=("DS:rms_offset:GAUGE:600:U:U")
     fi
 
-    if [ "${#new_ds[@]}" -gt 0 ]; then
-        log_message "INFO" "Migrating RRD: adding data sources -> ${new_ds[*]}"
-        LC_ALL=C rrdtool tune "$RRD_FILE" "${new_ds[@]}" || {
-            log_message "ERROR" "Failed to migrate RRD database (rrdtool tune)"
+    # Data sources to remove (databases migrated while update_interval existed,
+    # now dropped as it brought no real monitoring value).
+    local del_ds=()
+    if grep -q 'ds\[update_interval\]' <<<"$rrd_info"; then
+        del_ds+=("DEL:update_interval")
+    fi
+
+    if [ "${#add_ds[@]}" -gt 0 ]; then
+        log_message "INFO" "Migrating RRD: adding data sources -> ${add_ds[*]}"
+        LC_ALL=C rrdtool tune "$RRD_FILE" "${add_ds[@]}" || {
+            log_message "ERROR" "Failed to add data sources to RRD (rrdtool tune)"
+            exit 1
+        }
+    fi
+
+    if [ "${#del_ds[@]}" -gt 0 ]; then
+        log_message "INFO" "Migrating RRD: removing data sources -> ${del_ds[*]}"
+        LC_ALL=C rrdtool tune "$RRD_FILE" "${del_ds[@]}" || {
+            log_message "ERROR" "Failed to remove data sources from RRD (rrdtool tune)"
             exit 1
         }
     fi
@@ -255,12 +273,17 @@ migrate_rrd_database() {
 
 update_rrd_database() {
     log_message "INFO" "Updating RRD database..."
-    UPDATE_STRING="N:$OFFSET:$FREQ:$RESID_FREQ:$SKEW:$DELAY:$DISPERSION:$STRATUM:$SYSTIME:$PKTS_RECV:$PKTS_DROP:$CMD_RECV:$CMD_DROP:$LOG_DROP:$NTS_KE_ACC:$NTS_KE_DROP:$AUTH_PKTS:$INTERLEAVED:$TS_HELD:$RMS_OFFSET:$UPDATE_INTERVAL"
+    UPDATE_STRING="N:$OFFSET:$FREQ:$RESID_FREQ:$SKEW:$DELAY:$DISPERSION:$STRATUM:$SYSTIME:$PKTS_RECV:$PKTS_DROP:$CMD_RECV:$CMD_DROP:$LOG_DROP:$NTS_KE_ACC:$NTS_KE_DROP:$AUTH_PKTS:$INTERLEAVED:$TS_HELD:$RMS_OFFSET"
     LC_ALL=C rrdtool update "$RRD_FILE" "$UPDATE_STRING" || {
         log_message "ERROR" "Failed to update RRD database"
         exit 1
     }
 }
+###################### Graph definitions ######################
+# Each graph_* function fills the global GA array with the rrdtool graph
+# arguments specific to that graph. The common options (output file, size,
+# time range) are added by generate_graphs(). Using a bash array instead of
+# building a string for eval avoids quoting/word-splitting pitfalls.
 
 graph_chrony_serverstats() {
     local pt="$1"
@@ -436,21 +459,6 @@ graph_chrony_drift() {
     )
 }
 
-graph_chrony_update_interval() {
-    local pt="$1"
-    GA=(
-        --title "Chrony Update Interval - $pt"
-        --vertical-label "seconds"
-        --lower-limit 0 --rigid
-        "DEF:upd=$RRD_FILE:update_interval:AVERAGE"
-        "LINE2:upd#00ff00:Interval Between Clock Updates  [Update interval] "
-        "GPRINT:upd:LAST:Cur\: %7.2lf%s"
-        "GPRINT:upd:MIN:Min\: %7.2lf%s"
-        "GPRINT:upd:AVERAGE:Avg\: %7.2lf%s"
-        "GPRINT:upd:MAX:Max\: %7.2lf%s\l"
-    )
-}
-
 generate_graphs() {
     log_message "INFO" "Generating graphs..."
 
@@ -468,6 +476,7 @@ generate_graphs() {
         ["year"]="by year"
     )
 
+    # Fixed ordering for periods and graphs (associative arrays are unordered).
     local periods=("day" "week" "month" "year")
     local graph_names=(
         "chrony_serverstats"
@@ -476,7 +485,6 @@ generate_graphs() {
         "chrony_delay"
         "chrony_frequency"
         "chrony_drift"
-        "chrony_update_interval"
     )
 
     local period graph output_file
@@ -498,7 +506,6 @@ generate_graphs() {
         done
     done
 }
-
 generate_html() {
     log_message "INFO" "Generating HTML report..."
     local GENERATED_TIMESTAMP
@@ -575,15 +582,15 @@ $CSS_CUSTOM_ROOT
             margin-top: 25px;
         }
 	@media (max-width: 767px) {
-            #vnstat-graphs table,
-            #vnstat-graphs tbody,
-            #vnstat-graphs tr,
-            #vnstat-graphs td {
+            [id^="vnstat-graphs"] table,
+            [id^="vnstat-graphs"] tbody,
+            [id^="vnstat-graphs"] tr,
+            [id^="vnstat-graphs"] td {
                 display: block;
                 width: 100%;
             }
 
-            #vnstat-graphs td {
+            [id^="vnstat-graphs"] td {
                 padding-left: 0;
                 padding-right: 0;
                 text-align: center;
@@ -708,7 +715,7 @@ EOF
             _cls="tab-content"; [ "$_first" -eq 1 ] && _cls="tab-content active"; _first=0
             printf '                <div id="%s-content" class="%s">\n' "$_p" "$_cls"
             printf '                    <div class="graph-grid">\n'
-            for _g in serverstats offset tracking delay frequency drift update_interval; do
+            for _g in serverstats offset tracking delay frequency drift; do
                 printf '                        <figure>\n'
                 printf '                            <img src="img/chrony_%s_%s.png" alt="Chrony %s graph - %s">\n' \
                     "$_g" "$_p" "$_g" "$_p"
@@ -724,28 +731,30 @@ EOF
 EOF
 
     if [[ "$ENABLE_NETWORK_STATS" == "yes" ]]; then
-        cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
+        for iface in "${INTERFACES[@]}"; do
+            cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
 
-            <section id="vnstat-graphs">
-                <h2>vnStati Graphs</h2>
+            <section id="vnstat-graphs-${iface}">
+                <h2>vnStati Graphs - ${iface}</h2>
                 <table border="0" style="margin-left: auto; margin-right: auto;">
                     <tbody>
                         <tr>
                             <td valign="top" style="padding: 0 10px;">
-                                <img src="img/vnstat_s.png" alt="vnStat summary"><br>
-                                <img src="img/vnstat_d.png" alt="vnStat daily" style="margin-top: 4px;"><br>
-                                <img src="img/vnstat_t.png" alt="vnStat top 10" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_${iface}_s.png" alt="vnStat summary ${iface}"><br>
+                                <img src="img/vnstat_${iface}_d.png" alt="vnStat daily ${iface}" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_${iface}_t.png" alt="vnStat top 10 ${iface}" style="margin-top: 4px;"><br>
                             </td>
                             <td valign="top" style="padding: 0 10px;">
-                                <img src="img/vnstat_h.png" alt="vnStat hourly"><br>
-                                <img src="img/vnstat_m.png" alt="vnStat monthly" style="margin-top: 4px;"><br>
-                                <img src="img/vnstat_y.png" alt="vnStat yearly" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_${iface}_h.png" alt="vnStat hourly ${iface}"><br>
+                                <img src="img/vnstat_${iface}_m.png" alt="vnStat monthly ${iface}" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_${iface}_y.png" alt="vnStat yearly ${iface}" style="margin-top: 4px;"><br>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </section>
 EOF
+        done
     fi
 
     cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
