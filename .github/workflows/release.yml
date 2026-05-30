@@ -48,3 +48,4 @@ jobs:
           generate_release_notes: false
           files: |
             chrony-network-stats.sh
+            chrony-network-stats.conf

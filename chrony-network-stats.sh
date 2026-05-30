@@ -1,38 +1,40 @@
 #!/bin/bash
 set -euo pipefail
 
-####################### Configuration ######################
-
 VERSION="1.0.0"
 
-ENABLE_NETWORK_STATS="yes" ## Enable or disable network statistics generation using vnStat
-INTERFACE="eth0" ## Network interface to monitor (e.g., eth0, wlan0)
+###### Config file ######
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${CONFIG_FILE:-$SCRIPT_DIR/chrony-network-stats.conf}"
 
-PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
-OUTPUT_DIR="/var/www/html/chrony-network-stats" ## Output directory for HTML and images
-HTML_FILENAME="index.html" ## Output HTML file name
 
+####################### Built-in defaults ######################
+ENABLE_NETWORK_STATS="yes"
+INTERFACE="eth0"
+OUTPUT_DIR="/var/www/html/chrony-network-stats"
+HTML_FILENAME="index.html"
 RRD_DIR="/var/lib/chrony-rrd"
-RRD_FILE="$RRD_DIR/chrony.rrd" ## RRD file for storing chrony statistics
-
-ENABLE_LOGGING="no" ## Enable or disable logging to a file
+ENABLE_LOGGING="no"
 LOG_FILE="/var/log/chrony-network-stats.log"
-
-AUTO_REFRESH_SECONDS=0 ## Auto-refresh interval in seconds (0 = disabled, e.g., 300 for 5 minutes)
-GITHUB_REPO_LINK_SHOW="no" ## You can display the link to the repo 'chrony-stats' in the HTML footer | Not required | Default: no
-
-
+AUTO_REFRESH_SECONDS=0
+GITHUB_REPO_LINK_SHOW="no"
 ###### Advanced Configuration ######
-
-CHRONY_ALLOW_DNS_LOOKUP="no" ##  Disabled by default to avoid DNS lookups. Set to "yes" for more readable output (hostnames instead of IPs)
-DISPLAY_PRESET="default" # Preset for large screens. Options: default | 2k | 4k
+CHRONY_ALLOW_DNS_LOOKUP="no"
+DISPLAY_PRESET="default"
 
 TIMEOUT_SECONDS=5
-SERVER_STATS_UPPER_LIMIT=100000 ## When chrony restarts, it generate abnormally high values (e.g., 12M) | This filters out values above the threshold
+SERVER_STATS_UPPER_LIMIT=100000
+WIDTH=800
+HEIGHT=300
 ##############################################################
 
-WIDTH=800   ## These graph sizes are changing with DISPLAY_PRESET
-HEIGHT=300  ##
+
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+fi
+
+PAGE_TITLE="${PAGE_TITLE:-Network Traffic and Chrony Statistics for ${INTERFACE}}"
+RRD_FILE="${RRD_FILE:-$RRD_DIR/chrony.rrd}"
 
 log_message() {
     local level="$1"
@@ -825,6 +827,11 @@ EOF
 
 main() {
     log_message "INFO" "Starting chrony-network-stats script v${VERSION}..."
+    if [[ -f "$CONFIG_FILE" ]]; then
+        log_message "INFO" "Loaded configuration from: $CONFIG_FILE"
+    else
+        log_message "INFO" "No configuration file found, using built-in defaults"
+    fi
     validate_numeric "$WIDTH" "WIDTH"
     validate_numeric "$HEIGHT" "HEIGHT"
     validate_numeric "$TIMEOUT_SECONDS" "TIMEOUT_SECONDS"

@@ -46,7 +46,8 @@ Set `ENABLE_NETWORK_STATS="no"` in config
 ## Installation
 
 ```bash
-curl -O https://raw.githubusercontent.com/TheHuman00/chrony-stats/master/chrony-network-stats.sh
+curl -LO https://github.com/TheHuman00/chrony-stats/releases/latest/download/chrony-network-stats.sh
+curl -LO https://github.com/TheHuman00/chrony-stats/releases/latest/download/chrony-network-stats.conf
 sudo chmod +x ./chrony-network-stats.sh
 ```
 
@@ -64,17 +65,15 @@ Add this line:
 
 ## Configuration
 
-Open the script to edit its settings : `nano chrony-network-stats.sh`
+Open the configuration file to edit its settings: `nano chrony-network-stats.conf`
 
-The configuration block is at the top of the file:
+The configuration file contains the user-facing settings:
 
 ```bash
-####################### Configuration ######################
-
 ENABLE_NETWORK_STATS="yes"
 
 # Replace with your actual interface (e.g., ens33, enp0s3, wlan0)
-INTERFACE="eth0" ## CHANGE HERE ⚠️
+INTERFACE="<YOUR_INTERFACE>" ## CHANGE HERE ⚠️
 
 PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
 OUTPUT_DIR="/var/www/html/chrony-network-stats"
@@ -110,7 +109,6 @@ SERVER_STATS_UPPER_LIMIT=100000
 ##############################################################
 WIDTH=800
 HEIGHT=300
-##############################################################
 ```
 
 ### Display presets
@@ -139,14 +137,14 @@ tail -f /var/log/chrony-network-stats.log
 
 ## Upgrading
 
-Upgrading from an older version is seamless: any new data source is added to your existing RRD database automatically on the next run, with no manual step and without losing history.
+To upgrade, download the latest script release again:
 
-This version adds a **year** view (next to day, week, and month) and two Chrony metrics:
+```bash
+curl -LO https://github.com/TheHuman00/chrony-stats/releases/latest/download/chrony-network-stats.sh
+sudo chmod +x ./chrony-network-stats.sh
+```
 
-- **RMS offset** (long-term average offset), drawn next to the last offset on the offset graph.
-- **Update interval** (time between the last two clock updates), on its own graph.
-
-Because these two metrics had no data before the upgrade, their curves start from the upgrade date, leaving a gap before that point on the week, month, and year views. This is expected, not a bug.
+Do not replace `chrony-network-stats.conf` unless you want to reset or update your local configuration manually.
 
 ---
 
@@ -159,4 +157,3 @@ Free to use however you want without restriction. See [LICENSE](LICENSE) for det
 - [vnStat](https://humdi.net/vnstat/) — network traffic monitor
 - [RRDtool](https://rrdtool.org/rrdtool/index.en.html) — data storage and graph generation
 - [Chrony](https://chrony-project.org/) — NTP implementation
-
