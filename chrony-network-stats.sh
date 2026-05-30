@@ -3,6 +3,8 @@ set -euo pipefail
 
 ####################### Configuration ######################
 
+VERSION="1.0.0"
+
 ENABLE_NETWORK_STATS="yes" ## Enable or disable network statistics generation using vnStat
 INTERFACE="eth0" ## Network interface to monitor (e.g., eth0, wlan0)
 
@@ -758,7 +760,7 @@ EOF
         </main>
 
         <footer>
-            <p>Page generated on: ${GENERATED_TIMESTAMP}</p>
+            <p>Page generated on: ${GENERATED_TIMESTAMP} &nbsp;·&nbsp; v${VERSION}</p>
 EOF
     if [[ "$GITHUB_REPO_LINK_SHOW" == "yes" ]]; then
         cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
@@ -822,7 +824,7 @@ EOF
 }
 
 main() {
-    log_message "INFO" "Starting chrony-network-stats script..."
+    log_message "INFO" "Starting chrony-network-stats script v${VERSION}..."
     validate_numeric "$WIDTH" "WIDTH"
     validate_numeric "$HEIGHT" "HEIGHT"
     validate_numeric "$TIMEOUT_SECONDS" "TIMEOUT_SECONDS"
