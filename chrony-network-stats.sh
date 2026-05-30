@@ -1,13 +1,12 @@
 #!/bin/bash
-# --- Exit on error, unset variables, pipeline errors ------------------------
 set -euo pipefail
 
 ####################### Configuration ######################
 
 ENABLE_NETWORK_STATS="yes" ## Enable or disable network statistics generation using vnStat
-INTERFACES=("wlan0" "eth0") ## Network interfaces to monitor (bash array). Order = display order in HTML.
+INTERFACE="eth0" ## Network interface to monitor (e.g., eth0, wlan0)
 
-PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACES[*]}"
+PAGE_TITLE="Network Traffic and Chrony Statistics for ${INTERFACE}"
 OUTPUT_DIR="/var/www/html/chrony-network-stats" ## Output directory for HTML and images
 HTML_FILENAME="index.html" ## Output HTML file name
 
@@ -83,7 +82,7 @@ validate_numeric() {
 }
 
 check_commands() {
-    local commands=("rrdtool" "chronyc" "timeout")
+    local commands=("rrdtool" "chronyc" "sudo" "timeout")
 
     if [[ "$ENABLE_NETWORK_STATS" == "yes" ]]; then
         commands+=("vnstati")
@@ -117,15 +116,13 @@ generate_vnstat_images() {
         return 0
     fi
 
+    log_message "INFO" "Generating vnStat images for interface '$INTERFACE'..."
     local modes=("s" "d" "t" "h" "m" "y")
-    for iface in "${INTERFACES[@]}"; do
-        log_message "INFO" "Generating vnStat images for interface '$iface'..."
-        for mode in "${modes[@]}"; do
-            vnstati -"$mode" -i "$iface" -o "$OUTPUT_DIR/img/vnstat_${iface}_${mode}.png" || {
-                log_message "ERROR" "Failed to generate vnstat image for interface $iface mode $mode. Check INTERFACES=() configuration and 'vnstat --iflist'."
-                exit 1
-            }
-        done
+    for mode in "${modes[@]}"; do
+        vnstati -"$mode" -i "$INTERFACE" -o "$OUTPUT_DIR/img/vnstat_${mode}.png" || {
+            log_message "ERROR" "Failed to generate vnstat image for mode $mode Check configuaration section : INTERFACE=\"here\""
+            exit 1
+        }
     done
 }
 
@@ -139,13 +136,13 @@ collect_chrony_data() {
     fi
 
     get_html() {
-        timeout "$TIMEOUT_SECONDS"s chronyc $CHRONYC_OPTS "$1" -v 2>&1 | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g' || {
+        timeout "$TIMEOUT_SECONDS"s sudo chronyc $CHRONYC_OPTS "$1" -v 2>&1 | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g' || {
             log_message "ERROR" "Failed to collect chronyc $1 data"
             return 1
         }
     }
 
-    RAW_TRACKING=$(timeout "$TIMEOUT_SECONDS"s chronyc $CHRONYC_OPTS tracking) || {
+    RAW_TRACKING=$(timeout "$TIMEOUT_SECONDS"s sudo chronyc $CHRONYC_OPTS tracking) || {
         log_message "ERROR" "Failed to collect chronyc tracking data"
         exit 1
     }
@@ -189,7 +186,7 @@ extract_chronyc_values() {
         CHRONYC_OPTS="-n"
     fi
 
-    RAW_STATS=$(LC_ALL=C chronyc $CHRONYC_OPTS serverstats) || {
+    RAW_STATS=$(LC_ALL=C sudo chronyc $CHRONYC_OPTS serverstats) || {
         log_message "ERROR" "Failed to collect chronyc serverstats"
         exit 1
     }
@@ -230,9 +227,6 @@ create_rrd_database() {
 }
 
 migrate_rrd_database() {
-    # Reconcile the schema of an existing RRD with the current data sources,
-    # without losing historical data. rrdtool tune accepts DS: (add) and DEL:
-    # (remove) definitions and rewrites the file in place, preserving archives.
     [ -f "$RRD_FILE" ] || return 0
 
     local rrd_info
@@ -241,14 +235,11 @@ migrate_rrd_database() {
         return 1
     }
 
-    # Data sources to add (older databases predating rms_offset).
     local add_ds=()
     if ! grep -q 'ds\[rms_offset\]' <<<"$rrd_info"; then
         add_ds+=("DS:rms_offset:GAUGE:600:U:U")
     fi
 
-    # Data sources to remove (databases migrated while update_interval existed,
-    # now dropped as it brought no real monitoring value).
     local del_ds=()
     if grep -q 'ds\[update_interval\]' <<<"$rrd_info"; then
         del_ds+=("DEL:update_interval")
@@ -279,11 +270,6 @@ update_rrd_database() {
         exit 1
     }
 }
-###################### Graph definitions ######################
-# Each graph_* function fills the global GA array with the rrdtool graph
-# arguments specific to that graph. The common options (output file, size,
-# time range) are added by generate_graphs(). Using a bash array instead of
-# building a string for eval avoids quoting/word-splitting pitfalls.
 
 graph_chrony_serverstats() {
     local pt="$1"
@@ -476,7 +462,6 @@ generate_graphs() {
         ["year"]="by year"
     )
 
-    # Fixed ordering for periods and graphs (associative arrays are unordered).
     local periods=("day" "week" "month" "year")
     local graph_names=(
         "chrony_serverstats"
@@ -506,21 +491,22 @@ generate_graphs() {
         done
     done
 }
+
 generate_html() {
     log_message "INFO" "Generating HTML report..."
     local GENERATED_TIMESTAMP
     GENERATED_TIMESTAMP=$(date)
-    
+
     local CHRONYC_DISPLAY_OPTS=""
     if [[ "$CHRONY_ALLOW_DNS_LOOKUP" == "no" ]]; then
         CHRONYC_DISPLAY_OPTS=" -n"
     fi
-    
+
     local AUTO_REFRESH_META=""
     if [[ "$AUTO_REFRESH_SECONDS" -gt 0 ]]; then
         AUTO_REFRESH_META="    <meta http-equiv=\"refresh\" content=\"$AUTO_REFRESH_SECONDS\">"
     fi
-    
+
     cat >"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
 <!DOCTYPE html>
 <html lang="en">
@@ -581,16 +567,16 @@ $CSS_CUSTOM_ROOT
             color: var(--primary-text);
             margin-top: 25px;
         }
-	@media (max-width: 767px) {
-            [id^="vnstat-graphs"] table,
-            [id^="vnstat-graphs"] tbody,
-            [id^="vnstat-graphs"] tr,
-            [id^="vnstat-graphs"] td {
+        @media (max-width: 767px) {
+            #vnstat-graphs table,
+            #vnstat-graphs tbody,
+            #vnstat-graphs tr,
+            #vnstat-graphs td {
                 display: block;
                 width: 100%;
             }
 
-            [id^="vnstat-graphs"] td {
+            #vnstat-graphs td {
                 padding-left: 0;
                 padding-right: 0;
                 text-align: center;
@@ -634,7 +620,7 @@ $CSS_CUSTOM_ROOT
         }
         .lightbox-img {
             width: 96vw;
-            height: 94vh; 
+            height: 94vh;
             object-fit: contain;
             border: 0;
             cursor: zoom-out;
@@ -658,7 +644,7 @@ $CSS_CUSTOM_ROOT
             font-size: 0.9em;
             color: var(--secondary-text);
         }
-        
+
         .tabs {
             display: flex;
             border-bottom: 1px solid var(--border-color);
@@ -691,15 +677,12 @@ $CSS_CUSTOM_ROOT
 </head>
 <body>
     <div class="container">
-	<main>
+        <main>
             <section id="chrony-graphs">
                 <h2>Chrony Graphs <a target="_blank" href="https://chrony-project.org/doc/latest/chronyc.html#:~:text=System%20clock-,tracking,-The%20tracking%20command">[Data Legend]</a></h2>
-                
+
 EOF
 
-    # --- Dynamic generation of period tabs and graph grids ---
-    # Periods and graphs are enumerated here so adding one stays a single-line
-    # change and every tab automatically gets every graph.
     {
         local _first=1 _p _cls _g
         printf '                <div class="tabs">\n'
@@ -731,30 +714,28 @@ EOF
 EOF
 
     if [[ "$ENABLE_NETWORK_STATS" == "yes" ]]; then
-        for iface in "${INTERFACES[@]}"; do
-            cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
+        cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
 
-            <section id="vnstat-graphs-${iface}">
-                <h2>vnStati Graphs - ${iface}</h2>
+            <section id="vnstat-graphs">
+                <h2>vnStati Graphs</h2>
                 <table border="0" style="margin-left: auto; margin-right: auto;">
                     <tbody>
                         <tr>
                             <td valign="top" style="padding: 0 10px;">
-                                <img src="img/vnstat_${iface}_s.png" alt="vnStat summary ${iface}"><br>
-                                <img src="img/vnstat_${iface}_d.png" alt="vnStat daily ${iface}" style="margin-top: 4px;"><br>
-                                <img src="img/vnstat_${iface}_t.png" alt="vnStat top 10 ${iface}" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_s.png" alt="vnStat summary"><br>
+                                <img src="img/vnstat_d.png" alt="vnStat daily" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_t.png" alt="vnStat top 10" style="margin-top: 4px;"><br>
                             </td>
                             <td valign="top" style="padding: 0 10px;">
-                                <img src="img/vnstat_${iface}_h.png" alt="vnStat hourly ${iface}"><br>
-                                <img src="img/vnstat_${iface}_m.png" alt="vnStat monthly ${iface}" style="margin-top: 4px;"><br>
-                                <img src="img/vnstat_${iface}_y.png" alt="vnStat yearly ${iface}" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_h.png" alt="vnStat hourly"><br>
+                                <img src="img/vnstat_m.png" alt="vnStat monthly" style="margin-top: 4px;"><br>
+                                <img src="img/vnstat_y.png" alt="vnStat yearly" style="margin-top: 4px;"><br>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </section>
 EOF
-        done
     fi
 
     cat >>"$OUTPUT_DIR/$HTML_FILENAME" <<EOF
