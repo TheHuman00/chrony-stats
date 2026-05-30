@@ -40,12 +40,28 @@ jobs:
           git tag "v${{ github.event.inputs.version }}"
           git push origin HEAD --tags
 
+      - name: Extract release notes from changelog
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          awk -v version="v${VERSION}" '
+            $0 ~ "^## " version "([[:space:]-]|$)" { found=1; print; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "No changelog entry found for v${VERSION}"
+            echo "Add a '## v${VERSION}' section to CHANGELOG.md before running the release."
+            exit 1
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: "v${{ github.event.inputs.version }}"
           name: "v${{ github.event.inputs.version }}"
           generate_release_notes: false
+          body_path: RELEASE_NOTES.md
           files: |
             chrony-network-stats.sh
             chrony-network-stats.conf
