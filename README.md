@@ -2,7 +2,7 @@
 
 A lightweight Bash script that monitors **Chrony** and **network traffic**, generates visual graphs, and produces an HTML report ideal for low-resource servers.
 
-**[Live demo here!](https://thehuman00.github.io/demo-chrony-stats.github.io/)**
+**[Live demo here!](https://demo-chrony.inutile.pro/)**
 
 ---
 
@@ -30,7 +30,7 @@ sudo apt update && sudo apt install vnstat vnstati rrdtool
 Configure vnStat to monitor your network interface:
 ```bash
 vnstat --iflist          # find your interface name
-sudo vnstat -i eth0      # replace eth0 with your interface
+sudo vnstat -i <YOUR_INTERFACE>     # replace with your interface
 ```
 **If not eth0** : ⚠️ Change your network interface in the [Configuration](#configuration) section.
 
