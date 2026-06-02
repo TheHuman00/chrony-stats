@@ -31,11 +31,46 @@ jobs:
           sed -i 's/^VERSION=".*"/VERSION="${{ github.event.inputs.version }}"/' chrony-network-stats.sh
           grep '^VERSION=' chrony-network-stats.sh
 
+      - name: Update CHANGELOG
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          DATE=$(date +%Y-%m-%d)
+          VERSION="${{ github.event.inputs.version }}"
+
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges | grep -v "^- chore: release")
+          else
+            COMMITS="- Initial release"
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            COMMITS="- Minor changes and improvements"
+          fi
+
+          cat > /tmp/new_entry.md << EOF
+          ## v${VERSION} - ${DATE}
+
+          ${COMMITS}
+
+          EOF
+
+          FIRST_SECTION=$(grep -n "^## " CHANGELOG.md | head -1 | cut -d: -f1)
+          if [ -n "$FIRST_SECTION" ]; then
+            head -n $((FIRST_SECTION - 1)) CHANGELOG.md > /tmp/changelog_new.md
+            cat /tmp/new_entry.md >> /tmp/changelog_new.md
+            tail -n +${FIRST_SECTION} CHANGELOG.md >> /tmp/changelog_new.md
+            mv /tmp/changelog_new.md CHANGELOG.md
+          else
+            cat /tmp/new_entry.md >> CHANGELOG.md
+          fi
+
+          cat CHANGELOG.md
+
       - name: Commit and tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add chrony-network-stats.sh
+          git add chrony-network-stats.sh CHANGELOG.md
           git commit -m "chore: release v${{ github.event.inputs.version }}"
           git tag "v${{ github.event.inputs.version }}"
           git push origin HEAD --tags
