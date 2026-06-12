@@ -3,6 +3,10 @@
 This changelog starts with v1.0.0. Earlier changes were made before the
 project started tracking releases here and are not documented retroactively.
 
+## v1.1.0 - 2026-06-12
+
+- perf: throttle graph regeneration by period
+
 ## v1.0.2 - 2026-06-02
 
 - feat: auto-update CHANGELOG on release
