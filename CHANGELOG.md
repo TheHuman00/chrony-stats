@@ -11,12 +11,12 @@ project started tracking releases here and are not documented retroactively.
 - chore: use generated GitHub release notes
 - feat: use changelog entries as release notes
 
+## v1.0.1 - 2026-05-30
+
+- Move user settings to `chrony-network-stats.conf` while keeping built-in defaults for existing installs.
+
 ## v1.0.0 - 2026-05-30
 
 - Start tracking releases from this version.
 - Add script version output in logs and the generated HTML footer.
 - Add a manual GitHub release workflow.
-
-## v1.0.1 - 2026-05-30
-
-- Move user settings to `chrony-network-stats.conf` while keeping built-in defaults for existing installs.

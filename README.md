@@ -91,6 +91,17 @@ AUTO_REFRESH_SECONDS=0
 # Show a link to this GitHub repo in the HTML page (optional, disabled by default)
 GITHUB_REPO_LINK_SHOW="no"
 
+###### Graph regeneration intervals (in seconds) ######
+
+# Day graphs are always regenerated unless this is uncommented:
+# GRAPH_REGEN_DAY=300     # every 5 minutes
+
+GRAPH_REGEN_WEEK=3600     # every 1 hour
+GRAPH_REGEN_MONTH=21600   # every 6 hours
+GRAPH_REGEN_YEAR=86400    # every 24 hours
+
+GRAPH_REGEN_NETWORK=3600  # vnStat images, every 1 hour
+
 ###### Advanced Configuration ######
 
 # DNS reverse lookups for chronyc: "no" is faster and reduces network traffic
@@ -104,12 +115,28 @@ TIMEOUT_SECONDS=5
 
 # Filters abnormally high values caused by Chrony restarts (e.g. spikes of 12M packets)
 # Values above this threshold are replaced with gaps in the graph
-SERVER_STATS_UPPER_LIMIT=100000
+SERVER_STATS_UPPER_LIMIT=70000
 
 ##############################################################
 WIDTH=800
 HEIGHT=300
 ```
+
+### Graph regeneration intervals
+
+To avoid regenerating all graphs on every cron run, the script uses timestamp files in `RRD_DIR` to throttle PNG generation:
+
+| Variable | Default | Graphs affected |
+|---|---|---|
+| `GRAPH_REGEN_DAY` | *(not set = regenerated every run)* | Day |
+| `GRAPH_REGEN_WEEK` | `3600` (1 h) | Week |
+| `GRAPH_REGEN_MONTH` | `21600` (6 h) | Month |
+| `GRAPH_REGEN_YEAR` | `86400` (24 h) | Year |
+| `GRAPH_REGEN_NETWORK` | `3600` (1 h) | vnStat images |
+
+On first run all graphs are generated regardless of these values. To throttle day graphs, uncomment `GRAPH_REGEN_DAY` and set the interval in seconds.
+
+_Note: Chrony data is still collected and stored in the RRD database on every cron run. Here only the PNG graph generation is throttled._
 
 ### Display presets
 

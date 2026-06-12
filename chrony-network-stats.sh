@@ -26,6 +26,11 @@ TIMEOUT_SECONDS=5
 SERVER_STATS_UPPER_LIMIT=100000
 WIDTH=800
 HEIGHT=300
+GRAPH_REGEN_DAY=""
+GRAPH_REGEN_WEEK=3600
+GRAPH_REGEN_MONTH=21600
+GRAPH_REGEN_YEAR=86400
+GRAPH_REGEN_NETWORK=3600
 ##############################################################
 
 
@@ -120,6 +125,12 @@ generate_vnstat_images() {
         return 0
     fi
 
+    local stamp="$RRD_DIR/.last_graph_network"
+    if ! needs_regen "$stamp" "$GRAPH_REGEN_NETWORK"; then
+        log_message "INFO" "Skipping network graphs (not due for another refresh)"
+        return 0
+    fi
+
     log_message "INFO" "Generating vnStat images for interface '$INTERFACE'..."
     local modes=("s" "d" "t" "h" "m" "y")
     for mode in "${modes[@]}"; do
@@ -128,6 +139,7 @@ generate_vnstat_images() {
             exit 1
         }
     done
+    touch "$stamp"
 }
 
 collect_chrony_data() {
@@ -449,6 +461,14 @@ graph_chrony_drift() {
     )
 }
 
+needs_regen() {
+    local stamp_file="$1"
+    local threshold_seconds="$2"
+    [[ ! -f "$stamp_file" ]] && return 0
+    local elapsed=$(( $(date +%s) - $(date -r "$stamp_file" +%s) ))
+    [[ "$elapsed" -ge "$threshold_seconds" ]]
+}
+
 generate_graphs() {
     log_message "INFO" "Generating graphs..."
 
@@ -466,6 +486,20 @@ generate_graphs() {
         ["year"]="by year"
     )
 
+    declare -A period_stamps=(
+        ["day"]="${GRAPH_REGEN_DAY:+$RRD_DIR/.last_graph_day}"
+        ["week"]="$RRD_DIR/.last_graph_week"
+        ["month"]="$RRD_DIR/.last_graph_month"
+        ["year"]="$RRD_DIR/.last_graph_year"
+    )
+
+    declare -A period_thresholds=(
+        ["day"]="${GRAPH_REGEN_DAY:-0}"
+        ["week"]="$GRAPH_REGEN_WEEK"
+        ["month"]="$GRAPH_REGEN_MONTH"
+        ["year"]="$GRAPH_REGEN_YEAR"
+    )
+
     local periods=("day" "week" "month" "year")
     local graph_names=(
         "chrony_serverstats"
@@ -476,10 +510,17 @@ generate_graphs() {
         "chrony_drift"
     )
 
-    local period graph output_file
+    local period graph output_file stamp
     local GA=()
 
     for period in "${periods[@]}"; do
+        stamp="${period_stamps[$period]}"
+        if [[ -n "$stamp" ]] && ! needs_regen "$stamp" "${period_thresholds[$period]}"; then
+            log_message "INFO" "Skipping $period graphs (not due for another refresh)"
+            continue
+        fi
+
+        log_message "INFO" "Generating $period graphs..."
         for graph in "${graph_names[@]}"; do
             GA=()
             "graph_${graph}" "${period_titles[$period]}"
@@ -493,6 +534,8 @@ generate_graphs() {
                     exit 1
                 }
         done
+
+        [[ -n "$stamp" ]] && touch "$stamp"
     done
 }
 
@@ -837,6 +880,11 @@ main() {
     validate_numeric "$TIMEOUT_SECONDS" "TIMEOUT_SECONDS"
     validate_numeric "$SERVER_STATS_UPPER_LIMIT" "SERVER_STATS_UPPER_LIMIT"
     validate_numeric "$AUTO_REFRESH_SECONDS" "AUTO_REFRESH_SECONDS"
+    [[ -n "$GRAPH_REGEN_DAY" ]] && validate_numeric "$GRAPH_REGEN_DAY" "GRAPH_REGEN_DAY"
+    validate_numeric "$GRAPH_REGEN_WEEK" "GRAPH_REGEN_WEEK"
+    validate_numeric "$GRAPH_REGEN_MONTH" "GRAPH_REGEN_MONTH"
+    validate_numeric "$GRAPH_REGEN_YEAR" "GRAPH_REGEN_YEAR"
+    validate_numeric "$GRAPH_REGEN_NETWORK" "GRAPH_REGEN_NETWORK"
     configure_display_preset
     check_commands
     setup_directories
